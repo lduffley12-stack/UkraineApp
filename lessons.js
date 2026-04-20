@@ -151,6 +151,22 @@ const LESSONS = [
     ]
   },
   {
+    id: "compliments",
+    level: "phrases",
+    title: "Compliments & Sweet Words",
+    description: "Kind, genuine things to say when you mean it.",
+    items: [
+      { uk: "Ти гарна",             translit: "Ty harna",              breakdown: "TY HAR-na",                   hint: "Say to a woman — 'гарна' is the feminine form.",   en: "You are beautiful (to a woman)" },
+      { uk: "Ти красива",           translit: "Ty krasyva",            breakdown: "TY kra-SY-va",                hint: "Slightly softer / more classical than 'гарна'.",   en: "You are pretty" },
+      { uk: "Ти неймовірна",        translit: "Ty neimovirna",         breakdown: "TY nei-mo-VIR-na",            hint: "Stress the 3rd syllable: nei-mo-VIR-na.",         en: "You are amazing (to a woman)" },
+      { uk: "Маєш чудові очі",      translit: "Maiesh chudovi ochi",   breakdown: "MA-iesh chu-DO-vi O-chi",     en: "You have wonderful eyes" },
+      { uk: "Чарівна усмішка",      translit: "Charivna usmishka",     breakdown: "cha-RIV-na u-SMISH-ka",       hint: "Literally 'a bewitching smile'.",                  en: "A charming smile" },
+      { uk: "Ти особлива",          translit: "Ty osoblyva",           breakdown: "TY o-SOB-ly-va",              en: "You are special (to a woman)" },
+      { uk: "Ти моє сонечко",        translit: "Ty moie sonechko",      breakdown: "TY mo-YE SO-nech-ko",         hint: "Classic endearment — 'my little sun'.",            en: "You are my sunshine" },
+      { uk: "Кохана",               translit: "Kokhana",               breakdown: "ko-KHA-na",                   hint: "A very affectionate term. 'Коханий' if addressing a man.", en: "Beloved / darling (feminine)" }
+    ]
+  },
+  {
     id: "survival",
     level: "phrases",
     title: "Survival Phrases",
@@ -225,6 +241,22 @@ const LESSONS = [
       { uk: "Я прийду додому о шостій",       translit: "Ya pryidu dodomu o shostii",     breakdown: "YA pry-DU do-DO-mu o SHOS-tii",          en: "I will come home at six" },
       { uk: "Це була дуже цікава розмова",    translit: "Tse bula duzhe tsikava rozmova", breakdown: "TSE bu-LA DU-zhe tsi-KA-va roz-MO-va",   en: "That was a very interesting conversation" },
       { uk: "Дякую за твою доброту",          translit: "Diakuiu za tvoiu dobrotu",       breakdown: "DIA-ku-iu za tvo-YU do-bro-TU",          en: "Thank you for your kindness" }
+    ]
+  },
+  {
+    id: "dating",
+    level: "sentences",
+    title: "Dating & Feelings",
+    description: "Ask her out and share how you feel. Uses informal 'ти' — appropriate once you're flirting or close.",
+    items: [
+      { uk: "Ти мені подобаєшся",                   translit: "Ty meni podobaieshsia",             breakdown: "TY me-NI po-do-BA-iesh-sia",                  hint: "The classic 'I like you'. Stress 'BA' in подобаєшся.",           en: "I like you" },
+      { uk: "Хочеш піти зі мною на каву?",          translit: "Khochesh pity zi mnoiu na kavu?",   breakdown: "KHO-chesh pi-TY zi MNO-iu na KA-vu?",         hint: "Low-pressure first-date move.",                                  en: "Want to go for coffee with me?" },
+      { uk: "Я хотів би побачити тебе знову",       translit: "Ya khotiv by pobachyty tebe znovu", breakdown: "YA kho-TIV by po-BA-chy-ty te-BE ZNO-vu",     hint: "Say 'хотів' if you're male; use 'хотіла' if you're female.",   en: "I'd like to see you again" },
+      { uk: "Я про тебе весь час думаю",            translit: "Ya pro tebe ves chas dumaiu",       breakdown: "YA pro te-BE VES' CHAS DU-ma-iu",             en: "I think about you all the time" },
+      { uk: "Мені тебе не вистачає",                translit: "Meni tebe ne vystachaie",           breakdown: "me-NI te-BE ne vy-sta-CHA-ie",                hint: "Literally 'you are lacking to me' — the Ukrainian way to say 'I miss you'.", en: "I miss you" },
+      { uk: "Можна запросити тебе на вечерю?",      translit: "Mozhna zaprosyty tebe na vecheriu?", breakdown: "MOZH-na za-pro-SY-ty te-BE na ve-CHE-riu?",  hint: "A step up from coffee — proper dinner invitation.",              en: "May I invite you to dinner?" },
+      { uk: "Ти робиш мене щасливим",               translit: "Ty robysh mene shchaslyvym",        breakdown: "TY RO-bysh me-NE shchas-LY-vym",              hint: "Said by a man. A woman would say 'щасливою' instead.",          en: "You make me happy (said by a man)" },
+      { uk: "Я тебе кохаю",                         translit: "Ya tebe kokhaiu",                   breakdown: "YA te-BE ko-KHA-iu",                          hint: "'Кохаю' is specifically romantic love. 'Люблю' is gentler — use for family too.", en: "I love you (romantic)" }
     ]
   }
 ];

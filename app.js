@@ -11,8 +11,9 @@
   const LESSON_ICONS = {
     greetings: "👋", essentials: "✨", numbers: "🔢", family: "👨‍👩‍👧",
     colors: "🎨", food: "🍎", verbs: "🏃",
-    "small-talk": "💬", survival: "🆘", "at-the-cafe": "☕",
+    "small-talk": "💬", compliments: "💐", survival: "🆘", "at-the-cafe": "☕",
     "about-me": "🪪", "getting-around": "🗺", conversation: "🗣",
+    dating: "💕",
   };
 
   const LEVEL_META = {
