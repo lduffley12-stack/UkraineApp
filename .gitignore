@@ -1,0 +1,11 @@
+# Personal config — NEVER commit API keys
+config.local.js
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor junk
+.vscode/
+.idea/
+*.swp

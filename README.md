@@ -40,14 +40,35 @@ Then visit <http://localhost:8000>.
 
 ## Premium voice (optional): Azure Speech
 
-Click the **⚙** gear icon in the top-right to open **Voice settings**. Out of the box the app uses whatever Ukrainian voice your operating system has installed. If you want a dramatically better, more natural neural voice, you can plug in a free Microsoft Azure Speech key:
+Out of the box the app uses whatever Ukrainian voice your operating system has installed. If you want a dramatically better, natural neural voice, you can plug in a free Microsoft Azure Speech key. Two ways to do it:
 
-1. Sign in at <https://portal.azure.com> (create a free account if needed — requires a credit card, but the free tier won't charge you).
-2. Search **Speech services** → **Create** → pick region **East US** (or any nearby) → pricing tier **Free F0** (500,000 characters/month free).
-3. Open the resource → **Keys and Endpoint** → copy **KEY 1** and the **Location/Region**.
-4. In the app's Voice settings, choose **Azure Speech**, paste the key, pick the same region, choose **Polina** (female) or **Ostap** (male), click **Test voice**, then **Save**.
+### Option A — In-app settings panel (nothing to edit)
 
-Your key is stored only in your browser's localStorage and is used to request a short-lived token from Azure each session — it never leaves your machine otherwise.
+1. Sign in at <https://portal.azure.com>, search **Speech services** → **Create** → region near you → pricing tier **Free F0** (500,000 chars/month).
+2. Open the resource → **Keys and Endpoint** → copy **KEY 1** and note the **Region**.
+3. In the app, click the **⚙** gear icon, choose **Azure Speech**, paste the key, pick the region and a voice (Polina / Ostap), click **Test voice**, then **Save**.
+
+Your key is stored only in your browser's localStorage — nothing is uploaded to Git.
+
+### Option B — Local config file (auto-load, zero clicks)
+
+If you'd rather not touch the settings panel each time you open the app on a new browser, create a gitignored `config.local.js` file:
+
+```
+cp config.local.example.js config.local.js
+```
+
+Open `config.local.js`, paste your Azure key, set your region, and save. Reload the app — you'll see "Using Polina (Azure Speech)" under the Hear-it button. The file is listed in `.gitignore`, so it never gets committed.
+
+### ⚠ Keep your key out of Git
+
+**Never paste your key into `app.js`, `README.md`, or any other committed file.** Public GitHub repos are scraped constantly, and a leaked key can be used by anyone until you rotate it. If you intend to use Azure Speech at all, either:
+
+- Use the in-app settings panel (localStorage only — safe), **or**
+- Use `config.local.js` (gitignored — safe), **and**
+- Consider making the repo **private** on GitHub: open your repo → **Settings** → scroll to **Danger Zone** → **Change repository visibility** → **Make private**. This is belt-and-suspenders in case `.gitignore` is ever mis-edited.
+
+If you ever suspect your key has leaked: go back to the Azure portal → your Speech resource → **Keys and Endpoint** → **Regenerate Key 1**.
 
 ## Tips for pronunciation matching
 

@@ -45,6 +45,20 @@
       provider: "system",
       azure: { key: "", region: "eastus", voice: "uk-UA-PolinaNeural" },
     };
+
+    // If the user has a local config.local.js with credentials, it wins over
+    // the in-browser settings panel. (The file is gitignored — see README.)
+    if (typeof window !== "undefined" && window.UKRAINE_APP_CONFIG && window.UKRAINE_APP_CONFIG.voice) {
+      const fromFile = window.UKRAINE_APP_CONFIG.voice;
+      const merged = Object.assign({}, defaults, fromFile, {
+        azure: Object.assign({}, defaults.azure, fromFile.azure || {}),
+      });
+      // Only treat the file as "configured" if a real key was provided.
+      if (merged.provider !== "azure" || (merged.azure.key && merged.azure.key !== "PASTE_YOUR_AZURE_KEY_HERE")) {
+        return merged;
+      }
+    }
+
     try {
       const raw = localStorage.getItem(VOICE_SETTINGS_KEY);
       if (!raw) return defaults;
