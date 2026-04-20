@@ -212,7 +212,7 @@
     fcDone: document.getElementById("fc-done"),
     fcDoneStats: document.getElementById("fc-done-stats"),
     fcRestart: document.getElementById("fc-restart"),
-    fcBack: document.getElementById("fc-back"),
+    fcBackBtn: document.getElementById("fc-back"),
 
     // Match
     matchColUk: document.getElementById("match-col-uk"),
@@ -1277,7 +1277,7 @@
     el.fcAgain.addEventListener("click", function (e) { e.stopPropagation(); fcMarkAgain(); });
     el.fcGotIt.addEventListener("click", function (e) { e.stopPropagation(); fcMarkGotIt(); });
     el.fcRestart.addEventListener("click", function () { initFlashcards(); });
-    el.fcBack.addEventListener("click", function () {
+    el.fcBackBtn.addEventListener("click", function () {
       switchView("list"); renderLessonList();
     });
 
