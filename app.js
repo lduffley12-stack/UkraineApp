@@ -38,7 +38,31 @@
     availableVoice: null,
     recognizing: false,
     voiceSettings: loadVoiceSettings(),
+    mode: "practice",         // "practice" | "flashcards" | "match"
+    flashcards: null,         // { queue: int[], current: int, flipped: bool, gotIt: int, again: int }
+    match: null,              // { pairs, leftOrder, rightOrder, selected, matched:Set, mistakes }
+    a11y: loadA11ySettings(),
   };
+
+  function loadA11ySettings() {
+    const defaults = { font: "default", size: "normal", syllables: false, motion: false };
+    try {
+      const raw = localStorage.getItem("ukraine-a11y-v1");
+      return raw ? Object.assign({}, defaults, JSON.parse(raw)) : defaults;
+    } catch (_) { return defaults; }
+  }
+
+  function saveA11ySettings() {
+    try { localStorage.setItem("ukraine-a11y-v1", JSON.stringify(state.a11y)); } catch (_) {}
+  }
+
+  function applyA11ySettings() {
+    document.body.classList.toggle("font-dyslexic", state.a11y.font === "dyslexic");
+    document.body.classList.toggle("text-lg", state.a11y.size === "lg");
+    document.body.classList.toggle("text-xl", state.a11y.size === "xl");
+    document.body.classList.toggle("color-syllables", !!state.a11y.syllables);
+    document.body.classList.toggle("reduce-motion", !!state.a11y.motion);
+  }
 
   function loadVoiceSettings() {
     const defaults = {
@@ -161,6 +185,50 @@
     azureTest: document.getElementById("azure-test"),
     azureStatus: document.getElementById("azure-status"),
     voiceStatus: document.getElementById("voice-status"),
+
+    // Mode tabs
+    modeTabs: document.querySelectorAll(".mode-tab"),
+    modePractice: document.getElementById("mode-practice"),
+    modeFlashcards: document.getElementById("mode-flashcards"),
+    modeMatch: document.getElementById("mode-match"),
+
+    // Flashcards
+    flashcard: document.getElementById("flashcard"),
+    fcFront: document.querySelector(".flashcard-front"),
+    fcBack: document.querySelector(".flashcard-back"),
+    fcEmoji: document.getElementById("fc-emoji"),
+    fcEmojiBack: document.getElementById("fc-emoji-back"),
+    fcUk: document.getElementById("fc-uk"),
+    fcTranslit: document.getElementById("fc-translit"),
+    fcEn: document.getElementById("fc-en"),
+    fcBreakdown: document.getElementById("fc-breakdown"),
+    fcHint: document.getElementById("fc-hint"),
+    fcListen: document.getElementById("fc-listen"),
+    fcAgain: document.getElementById("fc-again"),
+    fcFlip: document.getElementById("fc-flip"),
+    fcGotIt: document.getElementById("fc-got-it"),
+    fcProgressFill: document.getElementById("fc-progress-fill"),
+    fcProgressText: document.getElementById("fc-progress-text"),
+    fcDone: document.getElementById("fc-done"),
+    fcDoneStats: document.getElementById("fc-done-stats"),
+    fcRestart: document.getElementById("fc-restart"),
+    fcBack: document.getElementById("fc-back"),
+
+    // Match
+    matchColUk: document.getElementById("match-col-uk"),
+    matchColEn: document.getElementById("match-col-en"),
+    matchProgressText: document.getElementById("match-progress-text"),
+    matchMistakes: document.getElementById("match-mistakes"),
+    matchDone: document.getElementById("match-done"),
+    matchDoneStats: document.getElementById("match-done-stats"),
+    matchAgain: document.getElementById("match-again"),
+    matchBack: document.getElementById("match-back"),
+
+    // A11y settings inputs
+    a11yFont: document.getElementById("a11y-font"),
+    a11ySize: document.getElementById("a11y-size"),
+    a11ySyllables: document.getElementById("a11y-syllables"),
+    a11yMotion: document.getElementById("a11y-motion"),
   };
   // Resolve the outer .assess-score ring (containing the number) for coloring
   el.assessScore = el.assessScoreNum ? el.assessScoreNum.parentElement : null;
@@ -364,6 +432,16 @@
     el.title.textContent = lesson.title;
     rememberPosition();
     switchView("lesson");
+    // Always open a lesson in Practice mode — mode choice is not persisted.
+    state.mode = "practice";
+    el.modeTabs.forEach(function (t) {
+      const active = t.getAttribute("data-mode") === "practice";
+      t.classList.toggle("active", active);
+      t.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    el.modePractice.classList.add("active");
+    el.modeFlashcards.classList.remove("active");
+    el.modeMatch.classList.remove("active");
     renderItem();
   }
 
@@ -1176,6 +1254,39 @@
 
     el.azureTest.addEventListener("click", function () { testAzureVoice(); });
 
+    // Mode tabs
+    el.modeTabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        switchMode(tab.getAttribute("data-mode"));
+      });
+    });
+
+    // Flashcards
+    el.flashcard.addEventListener("click", function () { fcFlipCard(); });
+    el.flashcard.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fcFlipCard(); }
+    });
+    el.fcFlip.addEventListener("click", function (e) { e.stopPropagation(); fcFlipCard(); });
+    el.fcListen.addEventListener("click", function (e) {
+      e.stopPropagation();
+      const fc = state.flashcards;
+      if (!fc) return;
+      const item = getLesson().items[fc.queue[fc.current]];
+      if (item) speak(item.uk);
+    });
+    el.fcAgain.addEventListener("click", function (e) { e.stopPropagation(); fcMarkAgain(); });
+    el.fcGotIt.addEventListener("click", function (e) { e.stopPropagation(); fcMarkGotIt(); });
+    el.fcRestart.addEventListener("click", function () { initFlashcards(); });
+    el.fcBack.addEventListener("click", function () {
+      switchView("list"); renderLessonList();
+    });
+
+    // Match
+    el.matchAgain.addEventListener("click", function () { initMatch(); });
+    el.matchBack.addEventListener("click", function () {
+      switchView("list"); renderLessonList();
+    });
+
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") {
         if (!el.welcomeOverlay.classList.contains("hidden")) dismissWelcome();
@@ -1237,6 +1348,12 @@
     el.azureStatus.textContent = "";
     el.azureStatus.className = "azure-status";
 
+    // Accessibility section
+    if (el.a11yFont) el.a11yFont.checked = state.a11y.font === "dyslexic";
+    if (el.a11ySize) el.a11ySize.value = state.a11y.size || "normal";
+    if (el.a11ySyllables) el.a11ySyllables.checked = !!state.a11y.syllables;
+    if (el.a11yMotion) el.a11yMotion.checked = !!state.a11y.motion;
+
     el.settingsOverlay.classList.remove("hidden");
     document.body.style.overflow = "hidden";
   }
@@ -1255,6 +1372,15 @@
     saveVoiceSettings();
     ensureVoiceWarning();
     setVoiceStatus();
+
+    // Save accessibility toggles
+    state.a11y.font = el.a11yFont && el.a11yFont.checked ? "dyslexic" : "default";
+    state.a11y.size = el.a11ySize ? el.a11ySize.value : "normal";
+    state.a11y.syllables = !!(el.a11ySyllables && el.a11ySyllables.checked);
+    state.a11y.motion = !!(el.a11yMotion && el.a11yMotion.checked);
+    saveA11ySettings();
+    applyA11ySettings();
+
     dismissSettings();
   }
   async function testAzureVoice() {
@@ -1288,8 +1414,281 @@
     }
   }
 
+  // ---------- Mode switching ----------
+  function switchMode(mode) {
+    if (mode === state.mode) return;
+    stopListening();
+    state.mode = mode;
+    el.modeTabs.forEach(function (t) {
+      const active = t.getAttribute("data-mode") === mode;
+      t.classList.toggle("active", active);
+      t.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    el.modePractice.classList.toggle("active", mode === "practice");
+    el.modeFlashcards.classList.toggle("active", mode === "flashcards");
+    el.modeMatch.classList.toggle("active", mode === "match");
+    if (mode === "flashcards") initFlashcards();
+    if (mode === "match") initMatch();
+    if (mode === "practice") renderItem();
+  }
+
+  // ---------- Flashcards ----------
+  function initFlashcards() {
+    const lesson = getLesson();
+    const queue = lesson.items.map(function (_, i) { return i; });
+    shuffle(queue);
+    state.flashcards = { queue: queue, current: 0, flipped: false, gotIt: 0, again: 0, totalShown: 0 };
+    el.fcDone.classList.add("hidden");
+    el.flashcard.style.display = "";
+    el.fcAgain.parentElement.style.display = "";
+    renderFlashcard();
+  }
+
+  function renderFlashcard() {
+    const fc = state.flashcards;
+    if (!fc) return;
+    const lesson = getLesson();
+    const itemIndex = fc.queue[fc.current];
+    if (typeof itemIndex === "undefined") return finishFlashcards();
+    const item = lesson.items[itemIndex];
+
+    const emoji = item.emoji || "";
+    el.fcEmoji.textContent = emoji;
+    el.fcEmojiBack.textContent = emoji;
+    el.fcUk.textContent = item.uk;
+    el.fcTranslit.textContent = item.translit || "";
+    el.fcEn.textContent = item.en;
+    el.fcHint.textContent = item.hint || "";
+    el.fcBreakdown.innerHTML = renderBreakdownHtml(item.breakdown || "");
+
+    // Always start on the front (Ukrainian side)
+    fc.flipped = false;
+    el.fcFront.classList.remove("hidden");
+    el.fcBack.classList.add("hidden");
+
+    // Progress bar: reflects GotIt-so-far / deck size
+    const total = fc.queue.length + fc.totalShown; // queue shrinks as we progress
+    const done = fc.gotIt;
+    const totalDeck = lesson.items.length;
+    el.fcProgressFill.style.width = Math.round((done / totalDeck) * 100) + "%";
+    el.fcProgressText.textContent = done + " of " + totalDeck + " got it";
+  }
+
+  // Small helper to render a breakdown HTML snippet for flashcards
+  function renderBreakdownHtml(breakdown) {
+    if (!breakdown) return "";
+    const parts = breakdown.split(/(\s+)/);
+    return parts.map(function (chunk) {
+      if (/^\s+$/.test(chunk)) return '<span class="pron-sep">&nbsp;</span>';
+      return chunk.split("-").map(function (syl, i, arr) {
+        const isStress = /[A-ZÀ-Ý]/.test(syl) && syl === syl.toUpperCase();
+        const cls = isStress ? "pron-syl stress" : "pron-syl";
+        const text = isStress ? syl.toLowerCase() : syl;
+        const sep = i < arr.length - 1 ? '<span class="pron-sep">·</span>' : "";
+        return '<span class="' + cls + '">' + escapeHtml(text) + '</span>' + sep;
+      }).join("");
+    }).join("");
+  }
+
+  function fcFlipCard() {
+    const fc = state.flashcards;
+    if (!fc) return;
+    fc.flipped = !fc.flipped;
+    el.fcFront.classList.toggle("hidden", fc.flipped);
+    el.fcBack.classList.toggle("hidden", !fc.flipped);
+    if (fc.flipped) {
+      // Auto-play the audio when revealing the answer
+      const item = getLesson().items[fc.queue[fc.current]];
+      if (item) speak(item.uk);
+    }
+  }
+
+  function fcMarkGotIt() {
+    const fc = state.flashcards;
+    if (!fc) return;
+    const lesson = getLesson();
+    const itemIndex = fc.queue[fc.current];
+    const item = lesson.items[itemIndex];
+    // Mark as completed in the main progress store (so lesson progress counts)
+    markItemCompleted(lesson.id, itemIndex);
+    updateOverallProgress();
+    fc.gotIt += 1;
+    fc.totalShown += 1;
+    fc.queue.splice(fc.current, 1);  // remove from deck
+    if (fc.current >= fc.queue.length) fc.current = 0;
+    if (fc.queue.length === 0) return finishFlashcards();
+    renderFlashcard();
+  }
+
+  function fcMarkAgain() {
+    const fc = state.flashcards;
+    if (!fc) return;
+    fc.again += 1;
+    fc.totalShown += 1;
+    // Move current card to the BACK of the queue so it comes around again
+    const idx = fc.queue.splice(fc.current, 1)[0];
+    fc.queue.push(idx);
+    if (fc.current >= fc.queue.length) fc.current = 0;
+    renderFlashcard();
+  }
+
+  function finishFlashcards() {
+    const fc = state.flashcards;
+    el.flashcard.style.display = "none";
+    el.fcAgain.parentElement.style.display = "none";
+    el.fcDoneStats.textContent =
+      "You got " + fc.gotIt + " card" + (fc.gotIt === 1 ? "" : "s") +
+      " with " + fc.again + " retr" + (fc.again === 1 ? "y" : "ies") + ".";
+    el.fcDone.classList.remove("hidden");
+  }
+
+  // ---------- Matching game ----------
+  const MATCH_ROUND_SIZE = 5;
+
+  function initMatch() {
+    const lesson = getLesson();
+    // Prefer items the learner hasn't yet mastered; fall back to the full set.
+    const lp = state.progress.lessons[lesson.id] || {};
+    const unmastered = lesson.items
+      .map(function (item, i) { return { item: item, i: i, done: !!(lp[i] && lp[i].completed) }; })
+      .filter(function (x) { return !x.done; });
+    const pool = (unmastered.length >= 4 ? unmastered : lesson.items.map(function (item, i) { return { item: item, i: i }; }));
+    shuffle(pool);
+    const pairs = pool.slice(0, Math.min(MATCH_ROUND_SIZE, pool.length));
+    const leftOrder = pairs.map(function (_, i) { return i; });
+    const rightOrder = pairs.map(function (_, i) { return i; });
+    shuffle(leftOrder); shuffle(rightOrder);
+    state.match = {
+      pairs: pairs, leftOrder: leftOrder, rightOrder: rightOrder,
+      selected: null, matched: new Set(), mistakes: 0,
+    };
+    el.matchDone.classList.add("hidden");
+    el.matchColUk.style.display = "";
+    el.matchColEn.style.display = "";
+    renderMatch();
+  }
+
+  function renderMatch() {
+    const m = state.match;
+    if (!m) return;
+    el.matchColUk.innerHTML = "";
+    el.matchColEn.innerHTML = "";
+    m.leftOrder.forEach(function (pairIdx) {
+      el.matchColUk.appendChild(buildMatchCard("uk", pairIdx, m.pairs[pairIdx].item));
+    });
+    m.rightOrder.forEach(function (pairIdx) {
+      el.matchColEn.appendChild(buildMatchCard("en", pairIdx, m.pairs[pairIdx].item));
+    });
+    updateMatchProgress();
+  }
+
+  function buildMatchCard(side, pairIdx, item) {
+    const card = document.createElement("button");
+    card.className = "match-card " + side;
+    card.setAttribute("type", "button");
+    card.setAttribute("data-pair", String(pairIdx));
+    card.setAttribute("data-side", side);
+    const emoji = side === "en" && item.emoji ? '<span class="match-emoji">' + item.emoji + "</span>" : "";
+    const text = side === "uk" ? item.uk : item.en;
+    card.innerHTML = emoji + "<span>" + escapeHtml(text) + "</span>";
+    card.addEventListener("click", function () { handleMatchClick(card); });
+    return card;
+  }
+
+  function handleMatchClick(card) {
+    const m = state.match;
+    if (!m) return;
+    const pairIdx = Number(card.getAttribute("data-pair"));
+    const side = card.getAttribute("data-side");
+    if (m.matched.has(pairIdx)) return;
+    if (card.classList.contains("wrong")) return;
+
+    // Tapping UK side also reads it out loud — multi-sensory cue
+    if (side === "uk") {
+      const item = m.pairs[pairIdx].item;
+      if (item) speak(item.uk);
+    }
+
+    if (!m.selected) {
+      // First selection
+      m.selected = { pairIdx: pairIdx, side: side, el: card };
+      card.classList.add("selected");
+      return;
+    }
+
+    // Second selection — same card? deselect.
+    if (m.selected.el === card) {
+      card.classList.remove("selected");
+      m.selected = null;
+      return;
+    }
+    // Must be opposite side; if same side, switch selection
+    if (m.selected.side === side) {
+      m.selected.el.classList.remove("selected");
+      m.selected = { pairIdx: pairIdx, side: side, el: card };
+      card.classList.add("selected");
+      return;
+    }
+
+    // Opposite side chosen — evaluate pairing
+    if (m.selected.pairIdx === pairIdx) {
+      // Correct!
+      card.classList.add("matched");
+      m.selected.el.classList.remove("selected");
+      m.selected.el.classList.add("matched");
+      m.matched.add(pairIdx);
+      m.selected = null;
+      // Mark this item as reviewed in main progress
+      const pair = m.pairs[pairIdx];
+      markItemCompleted(getLesson().id, pair.i);
+      updateMatchProgress();
+      if (m.matched.size === m.pairs.length) setTimeout(finishMatch, 400);
+    } else {
+      // Wrong pairing — flash, reset both
+      const wrongA = m.selected.el;
+      const wrongB = card;
+      m.mistakes += 1;
+      wrongA.classList.remove("selected");
+      wrongA.classList.add("wrong");
+      wrongB.classList.add("wrong");
+      m.selected = null;
+      setTimeout(function () {
+        wrongA.classList.remove("wrong");
+        wrongB.classList.remove("wrong");
+      }, 600);
+      updateMatchProgress();
+    }
+  }
+
+  function updateMatchProgress() {
+    const m = state.match;
+    el.matchProgressText.textContent = m.matched.size + " of " + m.pairs.length + " matched";
+    el.matchMistakes.textContent = m.mistakes ? "Wrong tries: " + m.mistakes : "";
+  }
+
+  function finishMatch() {
+    const m = state.match;
+    el.matchColUk.style.display = "none";
+    el.matchColEn.style.display = "none";
+    el.matchDoneStats.textContent =
+      "All " + m.pairs.length + " pairs matched" +
+      (m.mistakes === 0 ? " with no wrong tries. Perfect!" :
+       m.mistakes === 1 ? " with just 1 slip." :
+       " with " + m.mistakes + " wrong tries.");
+    updateOverallProgress();
+    renderLessonListQuietly();
+    el.matchDone.classList.remove("hidden");
+  }
+
+  function renderLessonListQuietly() {
+    // So that the home-screen progress pill updates next time it's shown;
+    // no need to re-render if the lesson list isn't visible right now.
+    // This is a no-op placeholder kept for future hooks.
+  }
+
   // ---------- Init ----------
   function init() {
+    applyA11ySettings();
     renderLessonList();
     wireEvents();
     setupRecognizer();

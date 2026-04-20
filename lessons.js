@@ -6,6 +6,8 @@
 //   breakdown: syllable-by-syllable Latin pronunciation with the stressed
 //              syllable in ALL CAPS (e.g. "pry-VIT" — stress on the 2nd)
 //   hint:      (optional) short English tip about a tricky sound
+//   emoji:     (optional) single-character pictorial cue for flashcards
+//              (strong dual-coding aid — especially helpful for dyslexic learners)
 //   accept:    (optional) alternate Cyrillic spellings accepted by the grader
 // Lessons are ordered easiest -> hardest: single words -> short phrases -> full sentences.
 
@@ -17,13 +19,13 @@ const LESSONS = [
     title: "Greetings",
     description: "The first words you'll use every day.",
     items: [
-      { uk: "Привіт",       translit: "Pryvit",       breakdown: "pry-VIT",              hint: "Stress the 2nd syllable; 'і' = 'ee'.",      en: "Hi / Hello (informal)" },
-      { uk: "Добрий день",  translit: "Dobryi den",   breakdown: "DOB-ryi DEN",          hint: "Two short words, stress the first syllable of each.", en: "Good day / Hello" },
-      { uk: "Доброго ранку",translit: "Dobroho ranku",breakdown: "DOB-ro-ho RAN-ku",     hint: "'г' is a soft 'h'.",                        en: "Good morning" },
-      { uk: "Добрий вечір", translit: "Dobryi vechir",breakdown: "DOB-ryi VE-chir",      hint: "'ч' = 'ch' in 'church'.",                   en: "Good evening" },
-      { uk: "На добраніч",  translit: "Na dobranich", breakdown: "na do-BRA-nich",       hint: "Stress the middle: do-BRA-nich.",           en: "Good night" },
-      { uk: "До побачення", translit: "Do pobachennia", breakdown: "do po-BA-chen-nia",  hint: "Stress 'BA'; double 'н' is held a beat.",   en: "Goodbye" },
-      { uk: "Бувай",        translit: "Buvai",        breakdown: "bu-VAI",               hint: "Ends with 'ay' as in 'sky'.",              en: "Bye (informal)" }
+      { uk: "Привіт",       translit: "Pryvit",       breakdown: "pry-VIT",              hint: "Stress the 2nd syllable; 'і' = 'ee'.",      en: "Hi / Hello (informal)", emoji: "👋" },
+      { uk: "Добрий день",  translit: "Dobryi den",   breakdown: "DOB-ryi DEN",          hint: "Two short words, stress the first syllable of each.", en: "Good day / Hello", emoji: "🌞" },
+      { uk: "Доброго ранку",translit: "Dobroho ranku",breakdown: "DOB-ro-ho RAN-ku",     hint: "'г' is a soft 'h'.",                        en: "Good morning", emoji: "🌅" },
+      { uk: "Добрий вечір", translit: "Dobryi vechir",breakdown: "DOB-ryi VE-chir",      hint: "'ч' = 'ch' in 'church'.",                   en: "Good evening", emoji: "🌆" },
+      { uk: "На добраніч",  translit: "Na dobranich", breakdown: "na do-BRA-nich",       hint: "Stress the middle: do-BRA-nich.",           en: "Good night", emoji: "🌙" },
+      { uk: "До побачення", translit: "Do pobachennia", breakdown: "do po-BA-chen-nia",  hint: "Stress 'BA'; double 'н' is held a beat.",   en: "Goodbye", emoji: "👋" },
+      { uk: "Бувай",        translit: "Buvai",        breakdown: "bu-VAI",               hint: "Ends with 'ay' as in 'sky'.",              en: "Bye (informal)", emoji: "✌️" }
     ]
   },
   {
@@ -32,13 +34,13 @@ const LESSONS = [
     title: "Essential Words",
     description: "Yes, no, please, thank you — the building blocks.",
     items: [
-      { uk: "Так",       translit: "Tak",       breakdown: "TAK",           en: "Yes" },
-      { uk: "Ні",        translit: "Ni",        breakdown: "NI",            hint: "'i' = long 'ee'.",                         en: "No" },
-      { uk: "Будь ласка",translit: "Bud laska", breakdown: "BUD' LAS-ka",   hint: "The 'ь' softens: 'BUD-y'.",                en: "Please / You're welcome" },
-      { uk: "Дякую",     translit: "Diakuiu",   breakdown: "DIA-ku-iu",     hint: "Stress the 1st. 'ю' = 'yoo'.",             en: "Thank you" },
-      { uk: "Вибачте",   translit: "Vybachte",  breakdown: "VY-bach-te",    hint: "Stress the 1st. 'и' = short 'y' sound.",   en: "Sorry / Excuse me" },
-      { uk: "Добре",     translit: "Dobre",     breakdown: "DOB-re",        en: "Good / Okay" },
-      { uk: "Погано",    translit: "Pohano",    breakdown: "po-HA-no",      hint: "'г' is soft: 'ha', not 'ga'.",             en: "Bad" }
+      { uk: "Так",       translit: "Tak",       breakdown: "TAK",           en: "Yes", emoji: "✅" },
+      { uk: "Ні",        translit: "Ni",        breakdown: "NI",            hint: "'i' = long 'ee'.",                         en: "No", emoji: "❌" },
+      { uk: "Будь ласка",translit: "Bud laska", breakdown: "BUD' LAS-ka",   hint: "The 'ь' softens: 'BUD-y'.",                en: "Please / You're welcome", emoji: "🙏" },
+      { uk: "Дякую",     translit: "Diakuiu",   breakdown: "DIA-ku-iu",     hint: "Stress the 1st. 'ю' = 'yoo'.",             en: "Thank you", emoji: "💐" },
+      { uk: "Вибачте",   translit: "Vybachte",  breakdown: "VY-bach-te",    hint: "Stress the 1st. 'и' = short 'y' sound.",   en: "Sorry / Excuse me", emoji: "😔" },
+      { uk: "Добре",     translit: "Dobre",     breakdown: "DOB-re",        en: "Good / Okay", emoji: "👍" },
+      { uk: "Погано",    translit: "Pohano",    breakdown: "po-HA-no",      hint: "'г' is soft: 'ha', not 'ga'.",             en: "Bad", emoji: "👎" }
     ]
   },
   {
@@ -47,16 +49,16 @@ const LESSONS = [
     title: "Numbers 1–10",
     description: "Count from one to ten.",
     items: [
-      { uk: "один",    translit: "odyn",    breakdown: "o-DYN",     en: "one" },
-      { uk: "два",     translit: "dva",     breakdown: "DVA",       en: "two" },
-      { uk: "три",     translit: "try",     breakdown: "TRY",       en: "three" },
-      { uk: "чотири",  translit: "chotyry", breakdown: "cho-TY-ry", en: "four" },
-      { uk: "п'ять",   translit: "piat",    breakdown: "PIAT",      hint: "The ' keeps 'п' and 'я' separate: 'p-YAT'.", en: "five",  accept: ["пять"] },
-      { uk: "шість",   translit: "shist",   breakdown: "SHIST",     hint: "'і' = 'ee'; ends with a soft 't'.",           en: "six" },
-      { uk: "сім",     translit: "sim",     breakdown: "SIM",       en: "seven" },
-      { uk: "вісім",   translit: "visim",   breakdown: "VI-sim",    en: "eight" },
-      { uk: "дев'ять", translit: "deviat",  breakdown: "DE-viat",   hint: "Apostrophe separates: 'dev-YAT'.",            en: "nine",  accept: ["девять"] },
-      { uk: "десять",  translit: "desiat",  breakdown: "DE-siat",   en: "ten" }
+      { uk: "один",    translit: "odyn",    breakdown: "o-DYN",     en: "one",   emoji: "1️⃣" },
+      { uk: "два",     translit: "dva",     breakdown: "DVA",       en: "two",   emoji: "2️⃣" },
+      { uk: "три",     translit: "try",     breakdown: "TRY",       en: "three", emoji: "3️⃣" },
+      { uk: "чотири",  translit: "chotyry", breakdown: "cho-TY-ry", en: "four",  emoji: "4️⃣" },
+      { uk: "п'ять",   translit: "piat",    breakdown: "PIAT",      hint: "The ' keeps 'п' and 'я' separate: 'p-YAT'.", en: "five",  emoji: "5️⃣", accept: ["пять"] },
+      { uk: "шість",   translit: "shist",   breakdown: "SHIST",     hint: "'і' = 'ee'; ends with a soft 't'.",           en: "six",   emoji: "6️⃣" },
+      { uk: "сім",     translit: "sim",     breakdown: "SIM",       en: "seven", emoji: "7️⃣" },
+      { uk: "вісім",   translit: "visim",   breakdown: "VI-sim",    en: "eight", emoji: "8️⃣" },
+      { uk: "дев'ять", translit: "deviat",  breakdown: "DE-viat",   hint: "Apostrophe separates: 'dev-YAT'.",            en: "nine",  emoji: "9️⃣", accept: ["девять"] },
+      { uk: "десять",  translit: "desiat",  breakdown: "DE-siat",   en: "ten",   emoji: "🔟" }
     ]
   },
   {
@@ -65,16 +67,16 @@ const LESSONS = [
     title: "Family",
     description: "People closest to you.",
     items: [
-      { uk: "мама",    translit: "mama",    breakdown: "MA-ma",    en: "mom" },
-      { uk: "тато",    translit: "tato",    breakdown: "TA-to",    en: "dad" },
-      { uk: "брат",    translit: "brat",    breakdown: "BRAT",     en: "brother" },
-      { uk: "сестра",  translit: "sestra",  breakdown: "se-STRA",  hint: "Stress falls on the 2nd syllable.",  en: "sister" },
-      { uk: "син",     translit: "syn",     breakdown: "SYN",      en: "son" },
-      { uk: "донька",  translit: "donka",   breakdown: "DON'-ka",  hint: "'ь' softens 'н' into 'ny'.",          en: "daughter" },
-      { uk: "бабуся",  translit: "babusia", breakdown: "ba-BU-sia", en: "grandma" },
-      { uk: "дідусь",  translit: "didus",   breakdown: "di-DUS'",  hint: "'ь' softens the final 's'.",          en: "grandpa" },
-      { uk: "друг",    translit: "druh",    breakdown: "DRUH",     hint: "'г' is a soft 'h', not 'g'.",         en: "friend (male)" },
-      { uk: "подруга", translit: "podruha", breakdown: "POD-ru-ha", en: "friend (female)" }
+      { uk: "мама",    translit: "mama",    breakdown: "MA-ma",    en: "mom",             emoji: "👩" },
+      { uk: "тато",    translit: "tato",    breakdown: "TA-to",    en: "dad",             emoji: "👨" },
+      { uk: "брат",    translit: "brat",    breakdown: "BRAT",     en: "brother",         emoji: "👦" },
+      { uk: "сестра",  translit: "sestra",  breakdown: "se-STRA",  hint: "Stress falls on the 2nd syllable.",  en: "sister", emoji: "👧" },
+      { uk: "син",     translit: "syn",     breakdown: "SYN",      en: "son",             emoji: "🧒" },
+      { uk: "донька",  translit: "donka",   breakdown: "DON'-ka",  hint: "'ь' softens 'н' into 'ny'.",          en: "daughter", emoji: "👶" },
+      { uk: "бабуся",  translit: "babusia", breakdown: "ba-BU-sia", en: "grandma",        emoji: "👵" },
+      { uk: "дідусь",  translit: "didus",   breakdown: "di-DUS'",  hint: "'ь' softens the final 's'.",          en: "grandpa",  emoji: "👴" },
+      { uk: "друг",    translit: "druh",    breakdown: "DRUH",     hint: "'г' is a soft 'h', not 'g'.",         en: "friend (male)",   emoji: "🧑‍🤝‍🧑" },
+      { uk: "подруга", translit: "podruha", breakdown: "POD-ru-ha", en: "friend (female)",emoji: "👭" }
     ]
   },
   {
@@ -83,16 +85,16 @@ const LESSONS = [
     title: "Colors",
     description: "Describe what you see.",
     items: [
-      { uk: "червоний",    translit: "chervonyi",     breakdown: "cher-VO-nyi",      en: "red" },
-      { uk: "синій",       translit: "synii",         breakdown: "SY-nii",           en: "blue" },
-      { uk: "зелений",     translit: "zelenyi",       breakdown: "ze-LE-nyi",        en: "green" },
-      { uk: "жовтий",      translit: "zhovtyi",       breakdown: "ZHOV-tyi",         hint: "'ж' = 'zh' like 's' in 'measure'.",  en: "yellow" },
-      { uk: "чорний",      translit: "chornyi",       breakdown: "CHOR-nyi",         en: "black" },
-      { uk: "білий",       translit: "bilyi",         breakdown: "BI-lyi",           en: "white" },
-      { uk: "сірий",       translit: "siryi",         breakdown: "SI-ryi",           en: "gray" },
-      { uk: "коричневий",  translit: "korychnevyi",   breakdown: "ko-RYCH-ne-vyi",   en: "brown" },
-      { uk: "рожевий",     translit: "rozhevyi",      breakdown: "ro-ZHE-vyi",       en: "pink" },
-      { uk: "помаранчевий",translit: "pomaranchevyi", breakdown: "po-ma-RAN-che-vyi",en: "orange" }
+      { uk: "червоний",    translit: "chervonyi",     breakdown: "cher-VO-nyi",      en: "red",    emoji: "🟥" },
+      { uk: "синій",       translit: "synii",         breakdown: "SY-nii",           en: "blue",   emoji: "🟦" },
+      { uk: "зелений",     translit: "zelenyi",       breakdown: "ze-LE-nyi",        en: "green",  emoji: "🟩" },
+      { uk: "жовтий",      translit: "zhovtyi",       breakdown: "ZHOV-tyi",         hint: "'ж' = 'zh' like 's' in 'measure'.",  en: "yellow", emoji: "🟨" },
+      { uk: "чорний",      translit: "chornyi",       breakdown: "CHOR-nyi",         en: "black",  emoji: "⬛" },
+      { uk: "білий",       translit: "bilyi",         breakdown: "BI-lyi",           en: "white",  emoji: "⬜" },
+      { uk: "сірий",       translit: "siryi",         breakdown: "SI-ryi",           en: "gray",   emoji: "🩶" },
+      { uk: "коричневий",  translit: "korychnevyi",   breakdown: "ko-RYCH-ne-vyi",   en: "brown",  emoji: "🟫" },
+      { uk: "рожевий",     translit: "rozhevyi",      breakdown: "ro-ZHE-vyi",       en: "pink",   emoji: "🩷" },
+      { uk: "помаранчевий",translit: "pomaranchevyi", breakdown: "po-ma-RAN-che-vyi",en: "orange", emoji: "🟧" }
     ]
   },
   {
@@ -101,16 +103,16 @@ const LESSONS = [
     title: "Food & Drink",
     description: "Words to survive at the table.",
     items: [
-      { uk: "хліб",   translit: "khlib",   breakdown: "KHLIB",    hint: "'х' is a throaty 'kh' (like Scottish 'loch').", en: "bread" },
-      { uk: "вода",   translit: "voda",    breakdown: "vo-DA",    en: "water" },
-      { uk: "молоко", translit: "moloko",  breakdown: "mo-lo-KO", hint: "Stress falls on the LAST syllable.",            en: "milk" },
-      { uk: "м'ясо",  translit: "miaso",   breakdown: "MIA-so",   hint: "Apostrophe separates: 'm-YA-so'.",              en: "meat", accept: ["мясо"] },
-      { uk: "риба",   translit: "ryba",    breakdown: "RY-ba",    en: "fish" },
-      { uk: "яблуко", translit: "yabluko", breakdown: "YAB-lu-ko",en: "apple" },
-      { uk: "сир",    translit: "syr",     breakdown: "SYR",      en: "cheese" },
-      { uk: "чай",    translit: "chai",    breakdown: "CHAI",     en: "tea" },
-      { uk: "кава",   translit: "kava",    breakdown: "KA-va",    en: "coffee" },
-      { uk: "сік",    translit: "sik",     breakdown: "SIK",      en: "juice" }
+      { uk: "хліб",   translit: "khlib",   breakdown: "KHLIB",    hint: "'х' is a throaty 'kh' (like Scottish 'loch').", en: "bread",  emoji: "🍞" },
+      { uk: "вода",   translit: "voda",    breakdown: "vo-DA",    en: "water",  emoji: "💧" },
+      { uk: "молоко", translit: "moloko",  breakdown: "mo-lo-KO", hint: "Stress falls on the LAST syllable.",            en: "milk",   emoji: "🥛" },
+      { uk: "м'ясо",  translit: "miaso",   breakdown: "MIA-so",   hint: "Apostrophe separates: 'm-YA-so'.",              en: "meat",   emoji: "🥩", accept: ["мясо"] },
+      { uk: "риба",   translit: "ryba",    breakdown: "RY-ba",    en: "fish",   emoji: "🐟" },
+      { uk: "яблуко", translit: "yabluko", breakdown: "YAB-lu-ko",en: "apple",  emoji: "🍎" },
+      { uk: "сир",    translit: "syr",     breakdown: "SYR",      en: "cheese", emoji: "🧀" },
+      { uk: "чай",    translit: "chai",    breakdown: "CHAI",     en: "tea",    emoji: "🍵" },
+      { uk: "кава",   translit: "kava",    breakdown: "KA-va",    en: "coffee", emoji: "☕" },
+      { uk: "сік",    translit: "sik",     breakdown: "SIK",      en: "juice",  emoji: "🧃" }
     ]
   },
   {
@@ -119,16 +121,16 @@ const LESSONS = [
     title: "Common Verbs",
     description: "Basic actions (infinitive form).",
     items: [
-      { uk: "бути",     translit: "buty",      breakdown: "BU-ty",      en: "to be" },
-      { uk: "мати",     translit: "maty",      breakdown: "MA-ty",      en: "to have" },
-      { uk: "робити",   translit: "robyty",    breakdown: "ro-BY-ty",   en: "to do / make" },
-      { uk: "говорити", translit: "hovoryty",  breakdown: "ho-vo-RY-ty",hint: "3 syllables; stress the 3rd.",    en: "to speak" },
-      { uk: "йти",      translit: "ity",       breakdown: "YTY",        hint: "Tricky: 'й' + 'т' + 'и'.",         en: "to go (on foot)" },
-      { uk: "їсти",     translit: "isty",      breakdown: "IS-ty",      hint: "'ї' = 'yi'.",                      en: "to eat" },
-      { uk: "пити",     translit: "pyty",      breakdown: "PY-ty",      en: "to drink" },
-      { uk: "спати",    translit: "spaty",     breakdown: "SPA-ty",     en: "to sleep" },
-      { uk: "бачити",   translit: "bachyty",   breakdown: "BA-chy-ty",  en: "to see" },
-      { uk: "любити",   translit: "liubyty",   breakdown: "liu-BY-ty",  en: "to love / like" }
+      { uk: "бути",     translit: "buty",      breakdown: "BU-ty",      en: "to be",          emoji: "🧍" },
+      { uk: "мати",     translit: "maty",      breakdown: "MA-ty",      en: "to have",        emoji: "🤲" },
+      { uk: "робити",   translit: "robyty",    breakdown: "ro-BY-ty",   en: "to do / make",   emoji: "🛠️" },
+      { uk: "говорити", translit: "hovoryty",  breakdown: "ho-vo-RY-ty",hint: "3 syllables; stress the 3rd.",    en: "to speak", emoji: "🗣️" },
+      { uk: "йти",      translit: "ity",       breakdown: "YTY",        hint: "Tricky: 'й' + 'т' + 'и'.",         en: "to go (on foot)", emoji: "🚶" },
+      { uk: "їсти",     translit: "isty",      breakdown: "IS-ty",      hint: "'ї' = 'yi'.",                      en: "to eat", emoji: "🍽️" },
+      { uk: "пити",     translit: "pyty",      breakdown: "PY-ty",      en: "to drink",       emoji: "🥤" },
+      { uk: "спати",    translit: "spaty",     breakdown: "SPA-ty",     en: "to sleep",       emoji: "💤" },
+      { uk: "бачити",   translit: "bachyty",   breakdown: "BA-chy-ty",  en: "to see",         emoji: "👀" },
+      { uk: "любити",   translit: "liubyty",   breakdown: "liu-BY-ty",  en: "to love / like", emoji: "❤️" }
     ]
   },
 

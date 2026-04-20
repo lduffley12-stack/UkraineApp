@@ -6,7 +6,7 @@
   <title>Learn Ukrainian</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:wght@600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:wght@600;700&family=Lexend:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -140,6 +140,36 @@
         </details>
       </div>
 
+      <!-- Accessibility / reading comfort -->
+      <div class="settings-section-header">Reading &amp; motion</div>
+      <p class="settings-section-desc">Designed with dyslexia in mind. None of these change lesson content — only how it's displayed.</p>
+      <div class="a11y-grid">
+        <label class="a11y-row">
+          <span class="a11y-row-label">Dyslexia-friendly font</span>
+          <span class="a11y-row-desc">Switches to <em>Lexend</em>, a research-backed font with clearer letter shapes.</span>
+          <input type="checkbox" id="a11y-font" />
+        </label>
+        <label class="a11y-row">
+          <span class="a11y-row-label">Larger text</span>
+          <span class="a11y-row-desc">Increases size across the app for easier reading.</span>
+          <select id="a11y-size">
+            <option value="normal">Normal</option>
+            <option value="lg">Large</option>
+            <option value="xl">Extra large</option>
+          </select>
+        </label>
+        <label class="a11y-row">
+          <span class="a11y-row-label">Color-coded syllables</span>
+          <span class="a11y-row-desc">Paints each syllable in the breakdown a different color so the eye tracks word structure.</span>
+          <input type="checkbox" id="a11y-syllables" />
+        </label>
+        <label class="a11y-row">
+          <span class="a11y-row-label">Reduce motion</span>
+          <span class="a11y-row-desc">Turns off fade-ins and the microphone pulse animation.</span>
+          <input type="checkbox" id="a11y-motion" />
+        </label>
+      </div>
+
       <button id="settings-save" class="btn-primary btn-big">Save settings</button>
     </div>
   </div>
@@ -203,7 +233,21 @@
         <div class="progress-track"><div id="lesson-progress-fill" class="progress-fill"></div></div>
       </div>
 
-      <!-- The word card -->
+      <!-- Mode tabs: Practice / Flashcards / Match -->
+      <div class="mode-tabs" role="tablist">
+        <button class="mode-tab active" data-mode="practice" role="tab" aria-selected="true">
+          <span class="mode-icon" aria-hidden="true">🎤</span><span>Practice</span>
+        </button>
+        <button class="mode-tab" data-mode="flashcards" role="tab" aria-selected="false">
+          <span class="mode-icon" aria-hidden="true">🃏</span><span>Flashcards</span>
+        </button>
+        <button class="mode-tab" data-mode="match" role="tab" aria-selected="false">
+          <span class="mode-icon" aria-hidden="true">🔀</span><span>Match</span>
+        </button>
+      </div>
+
+      <!-- =========== PRACTICE MODE (speaking) =========== -->
+      <div id="mode-practice" class="mode-view active">
       <article class="word-card">
         <div id="review-badge" class="review-badge hidden">
           <span class="review-badge-dot">●</span>
@@ -283,6 +327,75 @@
         <button id="skip-btn" class="btn-ghost">Skip</button>
         <button id="next-btn" class="btn-primary">Next →</button>
       </div>
+      </div><!-- /#mode-practice -->
+
+      <!-- =========== FLASHCARDS MODE =========== -->
+      <div id="mode-flashcards" class="mode-view">
+        <p class="mode-help">Read the Ukrainian word. Guess the meaning, then tap the card to flip and check. Hit <strong>Again</strong> if you missed it; <strong>Got it</strong> if you knew it.</p>
+        <div class="flashcard-wrap">
+          <div id="flashcard" class="flashcard" tabindex="0" role="button" aria-label="Flip card">
+            <div class="flashcard-face flashcard-front">
+              <div id="fc-emoji" class="flashcard-emoji" aria-hidden="true"></div>
+              <div id="fc-uk" class="flashcard-uk"></div>
+              <div id="fc-translit" class="flashcard-translit"></div>
+              <div class="flashcard-hint-flip">Tap to flip →</div>
+            </div>
+            <div class="flashcard-face flashcard-back hidden">
+              <div id="fc-emoji-back" class="flashcard-emoji" aria-hidden="true"></div>
+              <div id="fc-en" class="flashcard-en"></div>
+              <div id="fc-breakdown" class="flashcard-breakdown"></div>
+              <div id="fc-hint" class="flashcard-hint-text"></div>
+              <button id="fc-listen" class="btn-secondary">
+                <span class="btn-icon" aria-hidden="true">🔊</span><span>Hear it</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="flashcard-controls">
+          <button id="fc-again" class="btn-flash again">
+            <span class="btn-icon" aria-hidden="true">↺</span><span>Again</span>
+          </button>
+          <button id="fc-flip" class="btn-secondary">Flip</button>
+          <button id="fc-got-it" class="btn-flash got-it">
+            <span>Got it</span><span class="btn-icon" aria-hidden="true">✓</span>
+          </button>
+        </div>
+        <div class="flashcard-progress">
+          <div class="progress-track"><div id="fc-progress-fill" class="progress-fill"></div></div>
+          <span id="fc-progress-text">0 of 0</span>
+        </div>
+        <div id="fc-done" class="mode-done hidden">
+          <div class="mode-done-emoji">🎉</div>
+          <h3>Nice work! You got through the deck.</h3>
+          <p id="fc-done-stats"></p>
+          <div class="mode-done-actions">
+            <button id="fc-restart" class="btn-secondary">Shuffle &amp; replay</button>
+            <button id="fc-back" class="btn-primary">Back to lessons</button>
+          </div>
+        </div>
+      </div><!-- /#mode-flashcards -->
+
+      <!-- =========== MATCH MODE =========== -->
+      <div id="mode-match" class="mode-view">
+        <p class="mode-help">Tap a Ukrainian word, then tap its English meaning to pair them. No timer — take as long as you need.</p>
+        <div class="match-board">
+          <div class="match-col" id="match-col-uk" data-side="uk"></div>
+          <div class="match-col" id="match-col-en" data-side="en"></div>
+        </div>
+        <div class="match-progress">
+          <span id="match-progress-text">0 of 0 matched</span>
+          <span id="match-mistakes" class="match-mistakes"></span>
+        </div>
+        <div id="match-done" class="mode-done hidden">
+          <div class="mode-done-emoji">🎯</div>
+          <h3>All matched!</h3>
+          <p id="match-done-stats"></p>
+          <div class="mode-done-actions">
+            <button id="match-again" class="btn-secondary">New round</button>
+            <button id="match-back" class="btn-primary">Back to lessons</button>
+          </div>
+        </div>
+      </div><!-- /#mode-match -->
 
       <!-- Warnings -->
       <div id="voice-warning" class="warning hidden">

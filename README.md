@@ -10,6 +10,33 @@ For every item you can:
 - **Say it back** — press the microphone button and repeat. The app listens in Ukrainian and grades you. Get it right and that item is marked complete.
 - **Show translation** — hide the English by default so you practice recall, and reveal it when you need a hint.
 
+### Three practice modes per lesson
+
+Tabs at the top of every lesson switch between:
+
+- **🎤 Practice** — listen, then repeat out loud with pronunciation grading (the default mode, described above).
+- **🃏 Flashcards** — Ukrainian word on the front (with an emoji cue for vocabulary items), English + pronunciation breakdown + audio on the back. Tap to flip, then self-assess with **Again** (brings it back later in the deck) or **Got it** (retires it). Finishing the deck celebrates with a summary.
+- **🔀 Match** — a no-timer matching game: tap a Ukrainian word, then tap its English meaning. Tapping the Ukrainian card also reads it aloud. Correct pairs turn green; wrong pairs shake and reset.
+
+All three modes share the same progress. Saying a word correctly in Practice, getting it right in Flashcards, or matching it in the Match game all count toward completing that item.
+
+### Dyslexia-friendly options (settings ⚙)
+
+Under **Reading & motion** in the settings panel:
+
+- **Dyslexia-friendly font** — switches the whole app to [Lexend](https://www.lexend.com/), a research-backed font designed for easier reading, with extra word-spacing and line-height.
+- **Larger text** — Normal / Large / Extra large sizing that scales the Ukrainian word, controls, and cards.
+- **Color-coded syllables** — paints each syllable of the pronunciation breakdown a different calm color so the eye can track word structure.
+- **Reduce motion** — disables fade-ins, the microphone pulse, and card animations. (Also honored automatically if your OS has *Reduce motion* enabled.)
+
+Other dyslexia-aware design choices baked in everywhere:
+
+- **Dual coding** — vocabulary items ship with an emoji picture so the meaning attaches to an image as well as a word.
+- **Warm cream background** instead of pure white (reduces glare).
+- **No time pressure** in any mode — the Match game has no timer; Flashcards advance only when you tap.
+- **Short, chunked text** — one focal item at a time, never a wall of words.
+- **Consistent vocabulary** — the same words (*Hear it*, *Got it*, *Again*) mean the same thing everywhere.
+
 ### How grading works
 
 - **Without Azure (default):** the browser transcribes your voice to Cyrillic, and the app computes a text-match score (Levenshtein similarity). Simple and works offline-ish, but it grades whether you were *understood*, not whether you sounded Ukrainian.
