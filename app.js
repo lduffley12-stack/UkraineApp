@@ -126,6 +126,19 @@
     micLabel: document.getElementById("mic-label"),
     heard: document.getElementById("heard"),
     feedback: document.getElementById("feedback"),
+    pronCard: document.getElementById("pron-card"),
+    pronSyllables: document.getElementById("pron-syllables"),
+    pronHint: document.getElementById("pron-hint"),
+    assessResult: document.getElementById("assess-result"),
+    assessScoreNum: document.getElementById("assess-score-num"),
+    assessScore: null, // will resolve below
+    assessVerdict: document.getElementById("assess-verdict"),
+    subAccuracy: document.getElementById("sub-accuracy"),
+    subFluency: document.getElementById("sub-fluency"),
+    subCompleteness: document.getElementById("sub-completeness"),
+    subProsody: document.getElementById("sub-prosody"),
+    assessWords: document.getElementById("assess-words"),
+    assessTips: document.getElementById("assess-tips"),
     prev: document.getElementById("prev-btn"),
     skip: document.getElementById("skip-btn"),
     next: document.getElementById("next-btn"),
@@ -149,6 +162,8 @@
     azureStatus: document.getElementById("azure-status"),
     voiceStatus: document.getElementById("voice-status"),
   };
+  // Resolve the outer .assess-score ring (containing the number) for coloring
+  el.assessScore = el.assessScoreNum ? el.assessScoreNum.parentElement : null;
 
   // ---------- Lesson list view ----------
   function renderLessonList() {
@@ -449,6 +464,8 @@
     el.prev.disabled = state.itemIndex === 0;
     el.next.disabled = false;
     setVoiceStatus();
+    renderBreakdown(item);
+    hideAssessResult();
   }
 
   // ---------- Text-to-speech (provider-aware) ----------
@@ -675,7 +692,7 @@
     };
   }
 
-  function startListening() {
+  function startWebSpeechRecognition() {
     if (!recognizer || state.recognizing) return;
     try {
       recognizer.start();
@@ -684,9 +701,306 @@
     }
   }
 
+  function startListening() {
+    if (state.recognizing) return;
+    const item = state.runtimeItems[state.itemIndex];
+    if (!item) return;
+    const vs = state.voiceSettings;
+    if (vs.provider === "azure" && vs.azure.key) {
+      // Phoneme-level assessment via Azure
+      startAzureAssessment(item.uk);
+    } else {
+      // Legacy: browser's speech-to-text + Levenshtein text matching
+      startWebSpeechRecognition();
+    }
+  }
+
   function stopListening() {
+    if (azureRecognizer) {
+      stopAzureRecognition();
+      return;
+    }
     if (!recognizer || !state.recognizing) return;
     try { recognizer.stop(); } catch (_) {}
+  }
+
+  // ---------- Pronunciation breakdown (static, pre-attempt) ----------
+  function renderBreakdown(item) {
+    if (!el.pronCard) return;
+    if (!item.breakdown) {
+      el.pronCard.classList.add("hidden");
+      return;
+    }
+    // Split on hyphens AND spaces, keeping spaces as a visible separator.
+    // Tokens containing uppercase letters are treated as stressed syllables.
+    const parts = item.breakdown.split(/(\s+)/);
+    const html = parts.map(function (chunk) {
+      if (/^\s+$/.test(chunk)) return '<span class="pron-sep">&nbsp;</span>';
+      return chunk.split("-").map(function (syl, i, arr) {
+        const isStress = /[A-ZÀ-Ý]/.test(syl) && syl === syl.toUpperCase();
+        const cls = isStress ? "pron-syl stress" : "pron-syl";
+        const text = isStress ? syl.toLowerCase() : syl;
+        const sep = i < arr.length - 1 ? '<span class="pron-sep">·</span>' : "";
+        return '<span class="' + cls + '">' + escapeHtml(text) + '</span>' + sep;
+      }).join("");
+    }).join("");
+    el.pronSyllables.innerHTML = html;
+    el.pronHint.textContent = item.hint || "";
+    el.pronCard.classList.remove("hidden");
+  }
+
+  function hideAssessResult() {
+    if (el.assessResult) el.assessResult.classList.add("hidden");
+  }
+
+  // ---------- Azure Speech SDK loader (lazy) ----------
+  let sdkPromise = null;
+  function loadSpeechSDK() {
+    if (typeof window.SpeechSDK !== "undefined") {
+      return Promise.resolve(window.SpeechSDK);
+    }
+    if (sdkPromise) return sdkPromise;
+    sdkPromise = new Promise(function (resolve, reject) {
+      // The preload tag may still be loading — poll briefly first.
+      let waited = 0;
+      const poll = setInterval(function () {
+        if (typeof window.SpeechSDK !== "undefined") {
+          clearInterval(poll);
+          resolve(window.SpeechSDK);
+        } else if (waited > 4000) {
+          clearInterval(poll);
+          // Fall back: inject the script ourselves.
+          const s = document.createElement("script");
+          s.src = "https://aka.ms/csspeech/jsbrowserpackageraw";
+          s.onload = function () { resolve(window.SpeechSDK); };
+          s.onerror = function () { reject(new Error("Failed to load Azure Speech SDK")); };
+          document.head.appendChild(s);
+        }
+        waited += 100;
+      }, 100);
+    });
+    return sdkPromise;
+  }
+
+  // ---------- Azure Pronunciation Assessment ----------
+  let azureRecognizer = null;
+
+  function startAzureAssessment(referenceText) {
+    const vs = state.voiceSettings;
+    el.micBtn.classList.add("recording");
+    el.micLabel.textContent = "Listening… speak now";
+    el.heard.innerHTML = "";
+    el.feedback.textContent = "";
+    el.feedback.className = "feedback";
+    hideAssessResult();
+
+    state.recognizing = true;
+
+    loadSpeechSDK().then(function (SDK) {
+      const speechConfig = SDK.SpeechConfig.fromSubscription(vs.azure.key, vs.azure.region);
+      speechConfig.speechRecognitionLanguage = "uk-UA";
+      const audioConfig = SDK.AudioConfig.fromDefaultMicrophoneInput();
+
+      const paConfig = new SDK.PronunciationAssessmentConfig(
+        referenceText,
+        SDK.PronunciationAssessmentGradingSystem.HundredMark,
+        SDK.PronunciationAssessmentGranularity.Phoneme,
+        true // enableMiscue — flags omitted/inserted words
+      );
+      // Request prosody scoring if available (newer SDK)
+      try { paConfig.enableProsodyAssessment = true; } catch (_) {}
+
+      const recognizer = new SDK.SpeechRecognizer(speechConfig, audioConfig);
+      paConfig.applyTo(recognizer);
+      azureRecognizer = recognizer;
+
+      recognizer.recognizeOnceAsync(
+        function (result) {
+          endRecording();
+          try {
+            if (result.reason === SDK.ResultReason.RecognizedSpeech) {
+              const paResult = SDK.PronunciationAssessmentResult.fromResult(result);
+              renderAssessmentResult(result.text, paResult);
+              maybeMarkCompleted(paResult);
+            } else if (result.reason === SDK.ResultReason.NoMatch) {
+              showAssessError("I didn't catch anything. Try again, a bit louder.");
+            } else {
+              showAssessError("Recognition failed. Check your mic and try again.");
+            }
+          } finally {
+            try { recognizer.close(); } catch (_) {}
+            if (azureRecognizer === recognizer) azureRecognizer = null;
+          }
+        },
+        function (err) {
+          endRecording();
+          try { recognizer.close(); } catch (_) {}
+          if (azureRecognizer === recognizer) azureRecognizer = null;
+          const msg = typeof err === "string" ? err : (err && err.message) || "Unknown error";
+          showAssessError("Azure error: " + msg + ". Falling back to system speech recognition.");
+          // Fall back to the legacy recognizer for this attempt
+          startWebSpeechRecognition();
+        }
+      );
+    }).catch(function (err) {
+      endRecording();
+      showAssessError("Couldn't load the Azure Speech SDK. Falling back to system recognition.");
+      startWebSpeechRecognition();
+    });
+  }
+
+  function stopAzureRecognition() {
+    if (azureRecognizer) {
+      try { azureRecognizer.stopContinuousRecognitionAsync(function () {}); } catch (_) {}
+      try { azureRecognizer.close(); } catch (_) {}
+      azureRecognizer = null;
+    }
+    endRecording();
+  }
+
+  function endRecording() {
+    state.recognizing = false;
+    el.micBtn.classList.remove("recording");
+    el.micLabel.textContent = "Press & say the word";
+  }
+
+  function showAssessError(msg) {
+    el.feedback.textContent = msg;
+    el.feedback.className = "feedback bad";
+    hideAssessResult();
+  }
+
+  // ---------- Assessment result rendering ----------
+  function scoreClass(n) {
+    if (n >= 80) return "good";
+    if (n >= 60) return "ok";
+    return "bad";
+  }
+
+  function verdictFor(score) {
+    if (score >= 90) return { main: "Outstanding. Native-like.", sub: "Nothing to fix — move on or try the next one." };
+    if (score >= 80) return { main: "Excellent! ✓", sub: "You're easily understood. Small polish left." };
+    if (score >= 65) return { main: "Good start.", sub: "Understandable, but a few sounds need work." };
+    if (score >= 45) return { main: "Getting there.", sub: "Listen again carefully and match the stress." };
+    return { main: "Not quite.", sub: "Hit the 'Hear it' button and mimic the rhythm." };
+  }
+
+  function renderAssessmentResult(recognizedText, pa) {
+    const overall = Math.round(pa.pronunciationScore || 0);
+    el.assessScoreNum.textContent = overall;
+    if (el.assessScore) {
+      el.assessScore.classList.remove("good", "ok", "bad");
+      el.assessScore.classList.add(scoreClass(overall));
+    }
+
+    const v = verdictFor(overall);
+    el.assessVerdict.innerHTML =
+      escapeHtml(v.main) + '<span class="verdict-sub">' + escapeHtml(v.sub) + "</span>";
+
+    // Sub-scores
+    setSubscore(el.subAccuracy, pa.accuracyScore);
+    setSubscore(el.subFluency, pa.fluencyScore);
+    setSubscore(el.subCompleteness, pa.completenessScore);
+    setSubscore(el.subProsody, pa.prosodyScore);
+
+    // Word-by-word coloring
+    const detail = pa.detailResult || {};
+    const words = (detail.Words || []);
+    if (words.length) {
+      el.assessWords.innerHTML = words.map(function (w) {
+        const score = Math.round(w.PronunciationAssessment && w.PronunciationAssessment.AccuracyScore || w.AccuracyScore || 0);
+        const errType = (w.PronunciationAssessment && w.PronunciationAssessment.ErrorType) || w.ErrorType || "None";
+        const cls = errType === "Omission" ? "bad" : errType === "Insertion" ? "bad" : scoreClass(score);
+        const title = errType !== "None" ? errType : (score + "% accuracy");
+        return '<span class="assess-word ' + cls + '" title="' + escapeHtml(title) + '">' +
+                 escapeHtml(w.Word) + '<span class="wordscore">' + score + '</span>' +
+               '</span>';
+      }).join("");
+    } else {
+      el.assessWords.innerHTML = '<span class="pron-sep">—</span>';
+    }
+
+    // Tips: pick up to 2 concrete things to improve
+    const tips = buildTips(pa);
+    if (tips.length) {
+      el.assessTips.innerHTML = tips.map(function (t) {
+        return '<span class="tip-bullet">' + escapeHtml(t) + '</span>';
+      }).join("");
+    } else {
+      el.assessTips.innerHTML = "";
+    }
+
+    // Show what Azure heard (mirrors the legacy "heard" line)
+    if (recognizedText) {
+      el.heard.innerHTML =
+        '<span class="label">Azure heard:</span> <span class="spoken">' +
+        escapeHtml(recognizedText) + "</span>";
+    }
+
+    el.assessResult.classList.remove("hidden");
+  }
+
+  function setSubscore(node, n) {
+    if (!node) return;
+    if (n == null || isNaN(n)) {
+      node.textContent = "—";
+      node.className = "subscore-val";
+      return;
+    }
+    const rounded = Math.round(n);
+    node.textContent = rounded;
+    node.className = "subscore-val " + scoreClass(rounded);
+  }
+
+  function buildTips(pa) {
+    const tips = [];
+    const detail = pa.detailResult || {};
+    const words = detail.Words || [];
+
+    // 1) Omitted or inserted words
+    words.forEach(function (w) {
+      const err = (w.PronunciationAssessment && w.PronunciationAssessment.ErrorType) || w.ErrorType;
+      if (err === "Omission") tips.push('You skipped "' + w.Word + '". Say the whole phrase in one breath.');
+      if (err === "Insertion") tips.push('You added an extra word ("' + w.Word + '"). Stick to the line exactly.');
+    });
+
+    // 2) Weakest phoneme across all words
+    let weakest = null;
+    words.forEach(function (w) {
+      const phonemes = w.Phonemes || (w.PronunciationAssessment && w.PronunciationAssessment.Phonemes) || [];
+      phonemes.forEach(function (p) {
+        const score = p.PronunciationAssessment ? p.PronunciationAssessment.AccuracyScore : p.AccuracyScore;
+        if (typeof score === "number" && (weakest === null || score < weakest.score)) {
+          weakest = { phoneme: p.Phoneme, score: score, word: w.Word };
+        }
+      });
+    });
+    if (weakest && weakest.score < 60 && tips.length < 2) {
+      tips.push('The "' + weakest.phoneme + '" sound in "' + weakest.word + '" was off (' + Math.round(weakest.score) + '%). Listen to the Hear-it audio and copy that exact sound.');
+    }
+
+    // 3) Fluency-specific nudge
+    if (pa.fluencyScore != null && pa.fluencyScore < 60 && tips.length < 2) {
+      tips.push("Try to say it in one smooth flow — pauses between syllables hurt fluency.");
+    }
+    // 4) Prosody (stress) nudge
+    if (pa.prosodyScore != null && pa.prosodyScore < 60 && tips.length < 2) {
+      tips.push("Watch the stress — the highlighted syllable above should be clearly louder/longer.");
+    }
+
+    return tips.slice(0, 2);
+  }
+
+  function maybeMarkCompleted(pa) {
+    const item = state.runtimeItems[state.itemIndex];
+    const overall = pa.pronunciationScore || 0;
+    if (overall >= 75) {
+      markItemCompleted(item.sourceLessonId, item.sourceIndex);
+      updateOverallProgress();
+      const lesson = getLesson();
+      const pct = Math.round((countCompleted(lesson) / lesson.items.length) * 100);
+      el.lessonProgress.style.width = pct + "%";
+    }
   }
 
   // ---------- Answer checking ----------
@@ -783,12 +1097,14 @@
   // ---------- Navigation ----------
   function goPrev() {
     if (state.itemIndex > 0) {
+      stopListening();
       state.itemIndex--;
       rememberPosition();
       renderItem();
     }
   }
   function goNext() {
+    stopListening();
     if (state.itemIndex < state.runtimeItems.length - 1) {
       state.itemIndex++;
       rememberPosition();

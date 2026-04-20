@@ -6,8 +6,14 @@ For every item you can:
 
 - **Hear it** — the app reads the word in Ukrainian (text-to-speech).
 - **Hear it slowly** — slows playback down for harder words.
-- **Say it back** — press the microphone button and repeat. The app listens in Ukrainian, compares what you said to the expected answer, and grades you. Get it right and that item is marked complete.
+- **See how to say it** — every item shows a syllable-by-syllable pronunciation breakdown with the stressed syllable highlighted (e.g. "pry-**VIT**"), plus a short tip about any tricky sounds.
+- **Say it back** — press the microphone button and repeat. The app listens in Ukrainian and grades you. Get it right and that item is marked complete.
 - **Show translation** — hide the English by default so you practice recall, and reveal it when you need a hint.
+
+### How grading works
+
+- **Without Azure (default):** the browser transcribes your voice to Cyrillic, and the app computes a text-match score (Levenshtein similarity). Simple and works offline-ish, but it grades whether you were *understood*, not whether you sounded Ukrainian.
+- **With Azure Speech configured (recommended):** the app sends your audio to Azure's **Pronunciation Assessment** service, which scores you on four dimensions — Accuracy, Fluency, Completeness, and Prosody — at the phoneme level. You'll see an overall score, word-by-word color coding (green / yellow / red), and up to two concrete tips about which sounds or words to fix. See the Azure setup section below.
 
 Progress is saved in your browser (localStorage) so the app remembers where you left off:
 

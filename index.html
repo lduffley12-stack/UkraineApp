@@ -214,6 +214,14 @@
         <div class="word-stage">
           <div class="ukrainian" id="uk-text">—</div>
           <div class="translit" id="translit-text"></div>
+
+          <!-- Pronunciation breakdown: syllables with the stressed one highlighted -->
+          <div id="pron-card" class="pron-card hidden">
+            <div class="pron-label">How to say it</div>
+            <div id="pron-syllables" class="pron-syllables"></div>
+            <div id="pron-hint" class="pron-hint"></div>
+          </div>
+
           <button id="show-btn" class="translation-toggle" type="button">
             <span class="toggle-dot" aria-hidden="true"></span>
             <span>Show English translation</span>
@@ -244,6 +252,28 @@
           </button>
           <div id="heard" class="heard" aria-live="polite"></div>
           <div id="feedback" class="feedback" aria-live="polite"></div>
+
+          <!-- Rich pronunciation-assessment result (Azure only) -->
+          <div id="assess-result" class="assess-result hidden" aria-live="polite">
+            <div class="assess-headline">
+              <div class="assess-score">
+                <span id="assess-score-num" class="assess-score-num">0</span>
+                <span class="assess-score-label">pronunciation</span>
+              </div>
+              <div id="assess-verdict" class="assess-verdict"></div>
+            </div>
+            <div class="assess-subscores">
+              <div class="subscore"><span class="subscore-label">Accuracy</span><span id="sub-accuracy" class="subscore-val">—</span></div>
+              <div class="subscore"><span class="subscore-label">Fluency</span><span id="sub-fluency" class="subscore-val">—</span></div>
+              <div class="subscore"><span class="subscore-label">Completeness</span><span id="sub-completeness" class="subscore-val">—</span></div>
+              <div class="subscore"><span class="subscore-label">Prosody</span><span id="sub-prosody" class="subscore-val">—</span></div>
+            </div>
+            <div class="assess-section">
+              <div class="assess-section-label">Word-by-word</div>
+              <div id="assess-words" class="assess-words"></div>
+            </div>
+            <div id="assess-tips" class="assess-tips"></div>
+          </div>
         </div>
       </article>
 
@@ -271,5 +301,8 @@
        will log a harmless 404 and the app falls back to the in-app settings panel. -->
   <script src="config.local.js" onerror="void 0"></script>
   <script src="app.js"></script>
+  <!-- Azure Speech SDK is loaded on demand by app.js when Azure is configured.
+       Loading here (deferred) is an optional preload; the app works without it. -->
+  <script defer src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
 </body>
 </html>

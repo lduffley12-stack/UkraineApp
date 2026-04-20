@@ -415,6 +415,74 @@ main {
   font-weight: 400;
 }
 
+/* Pronunciation breakdown card */
+.pron-card {
+  margin: 18px auto 0;
+  max-width: 460px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #eef3fb 0%, #fff7db 100%);
+  border: 1px solid #dfe6f2;
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.pron-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+
+.pron-syllables {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+}
+
+.pron-syl {
+  display: inline-block;
+  padding: 0 2px;
+}
+
+.pron-syl.stress {
+  color: var(--uk-blue-d);
+  background: rgba(247, 201, 72, 0.35);
+  padding: 2px 6px;
+  border-radius: 6px;
+  position: relative;
+  font-weight: 700;
+}
+
+.pron-syl.stress::before {
+  content: "ˈ";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  color: var(--warn);
+  font-family: inherit;
+}
+
+.pron-sep {
+  display: inline-block;
+  color: var(--muted);
+  margin: 0 1px;
+}
+
+.pron-hint {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+.pron-hint:empty { display: none; }
+
 /* Listen row */
 .listen-row {
   display: flex;
@@ -497,6 +565,170 @@ main {
 .feedback.ok   { color: var(--warn); background: var(--warn-bg); }
 .feedback.bad  { color: var(--error); background: var(--error-bg); }
 .feedback:empty { background: transparent; padding: 0; }
+
+/* Rich pronunciation assessment result */
+.assess-result {
+  margin-top: 16px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.assess-headline {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.assess-score {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+  background: var(--surface-2);
+  transition: border-color 0.2s;
+}
+.assess-score.good  { border-color: var(--success); background: var(--success-bg); }
+.assess-score.ok    { border-color: var(--warn);    background: var(--warn-bg); }
+.assess-score.bad   { border-color: var(--error);   background: var(--error-bg); }
+
+.assess-score-num {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--ink);
+}
+.assess-score-label {
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.assess-verdict {
+  flex: 1;
+  min-width: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.35;
+}
+.assess-verdict .verdict-sub {
+  display: block;
+  margin-top: 4px;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.assess-subscores {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.subscore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  background: var(--surface-2);
+  border-radius: 10px;
+}
+.subscore-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.subscore-val {
+  font-weight: 700;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.subscore-val.good { color: var(--success); }
+.subscore-val.ok   { color: var(--warn); }
+.subscore-val.bad  { color: var(--error); }
+
+.assess-section { padding: 14px 0 0; }
+.assess-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.assess-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 20px;
+  line-height: 1.3;
+}
+.assess-word {
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  position: relative;
+  cursor: help;
+  font-weight: 600;
+}
+.assess-word.good { background: var(--success-bg); color: #186b3b; }
+.assess-word.ok   { background: var(--warn-bg);    color: #7a4b00; }
+.assess-word.bad  { background: var(--error-bg);   color: #8d1f1b; text-decoration: wavy underline; text-underline-offset: 3px; }
+.assess-word .wordscore {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 4px;
+  opacity: 0.65;
+  vertical-align: top;
+}
+
+.assess-tips {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: #eff5ff;
+  border: 1px solid #d5e2f7;
+  border-radius: 10px;
+  font-size: 13.5px;
+  color: #1d3a72;
+  line-height: 1.5;
+}
+.assess-tips:empty { display: none; }
+.assess-tips .tip-bullet::before {
+  content: "•  ";
+  color: var(--uk-blue);
+  font-weight: 700;
+}
+.assess-tips .tip-bullet { display: block; }
+
+@media (max-width: 520px) {
+  .assess-headline { gap: 14px; }
+  .assess-score { width: 80px; height: 80px; }
+  .assess-score-num { font-size: 28px; }
+  .assess-subscores { grid-template-columns: repeat(2, 1fr); }
+  .assess-verdict { font-size: 16px; }
+}
 
 /* Nav row */
 .nav-row {
