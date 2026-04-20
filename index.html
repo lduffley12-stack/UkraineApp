@@ -21,8 +21,16 @@
   <main id="app">
     <!-- Lesson selection view -->
     <section id="lesson-list" class="view active">
+      <div id="resume-banner" class="resume-banner hidden">
+        <div class="resume-text">
+          <span class="resume-label">Continue where you left off</span>
+          <strong id="resume-lesson-title"></strong>
+          <span id="resume-item-info" class="resume-sub"></span>
+        </div>
+        <button id="resume-btn" class="btn primary">Resume →</button>
+      </div>
       <h2>Choose a lesson</h2>
-      <p class="hint">Start at the top. Lessons get harder as you go — first single words, then short phrases, then full sentences.</p>
+      <p class="hint">Start at the top. Lessons get harder as you go — first single words, then short phrases, then full sentences. Finish a lesson (80%+) to unlock the next one.</p>
       <div id="lessons-container" class="lessons-grid"></div>
       <div class="footer-note">
         <p>Tip: Use Chrome, Edge, or Safari for the best speech-recognition support. Make sure your browser has microphone access.</p>

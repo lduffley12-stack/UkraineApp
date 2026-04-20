@@ -1,9 +1,16 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "ukraine-app-progress-v1";
+  const STORAGE_KEY = "ukraine-app-progress-v2";
+  const LEGACY_STORAGE_KEY = "ukraine-app-progress-v1";
+  const UNLOCK_THRESHOLD = 0.8; // 80% of previous lesson required to unlock the next
 
   // ---------- State ----------
+  // Progress shape:
+  // {
+  //   lessons: { [lessonId]: { [itemIndex]: { completed: true, at: timestamp } } },
+  //   lastPosition: { lessonId, itemIndex }
+  // }
   const state = {
     lessonId: null,
     itemIndex: 0,
@@ -15,16 +22,26 @@
   function loadProgress() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch (_) {
-      return {};
-    }
+      if (raw) return JSON.parse(raw);
+      // Migrate from v1 (items stored at top level by lessonId)
+      const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacy) {
+        const parsed = JSON.parse(legacy);
+        return { lessons: parsed || {}, lastPosition: null };
+      }
+    } catch (_) { /* fall through */ }
+    return { lessons: {}, lastPosition: null };
   }
 
   function saveProgress() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state.progress));
     } catch (_) { /* storage full or blocked */ }
+  }
+
+  function lessonProgressFor(lessonId) {
+    if (!state.progress.lessons[lessonId]) state.progress.lessons[lessonId] = {};
+    return state.progress.lessons[lessonId];
   }
 
   // ---------- Elements ----------
@@ -35,6 +52,10 @@
     },
     lessonsContainer: document.getElementById("lessons-container"),
     resetBtn: document.getElementById("reset-progress"),
+    resumeBanner: document.getElementById("resume-banner"),
+    resumeBtn: document.getElementById("resume-btn"),
+    resumeLessonTitle: document.getElementById("resume-lesson-title"),
+    resumeItemInfo: document.getElementById("resume-item-info"),
     backBtn: document.getElementById("back-btn"),
     title: document.getElementById("lesson-title"),
     counter: document.getElementById("lesson-counter"),
@@ -61,7 +82,7 @@
   // ---------- Lesson list view ----------
   function renderLessonList() {
     el.lessonsContainer.innerHTML = "";
-    LESSONS.forEach(function (lesson) {
+    LESSONS.forEach(function (lesson, index) {
       const btn = document.createElement("button");
       btn.className = "lesson-card";
       btn.setAttribute("type", "button");
@@ -74,6 +95,18 @@
 
       const completed = countCompleted(lesson);
       const pct = Math.round((completed / lesson.items.length) * 100);
+      const status = getLessonStatus(index);
+
+      if (status.locked) btn.classList.add("locked");
+      if (status.done) btn.classList.add("done");
+
+      const statusLine = status.locked
+        ? '<span class="status locked-note">🔒 Finish "' + escapeHtml(LESSONS[index - 1].title) + '" to unlock</span>'
+        : status.done
+          ? '<span class="status unlocked">✓ Complete</span>'
+          : completed > 0
+            ? '<span class="status unlocked">In progress</span>'
+            : '<span class="status unlocked">Ready</span>';
 
       btn.innerHTML = `
         <span class="level-badge ${levelClass}">${levelLabel}</span>
@@ -83,20 +116,73 @@
           <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
           <span>${completed}/${lesson.items.length}</span>
         </div>
+        ${statusLine}
       `;
-      btn.addEventListener("click", function () { openLesson(lesson.id); });
+      btn.disabled = status.locked;
+      btn.addEventListener("click", function () {
+        if (status.locked) return;
+        openLesson(lesson.id);
+      });
       el.lessonsContainer.appendChild(btn);
     });
     updateOverallProgress();
+    renderResumeBanner();
   }
 
   function countCompleted(lesson) {
-    const lp = state.progress[lesson.id] || {};
+    const lp = state.progress.lessons[lesson.id] || {};
     let count = 0;
     for (let i = 0; i < lesson.items.length; i++) {
       if (lp[i] && lp[i].completed) count++;
     }
     return count;
+  }
+
+  function getLessonStatus(index) {
+    const lesson = LESSONS[index];
+    const completed = countCompleted(lesson);
+    const pct = completed / lesson.items.length;
+    const done = pct >= 1;
+    // First lesson is always unlocked. Later lessons require the previous one to reach threshold.
+    let locked = false;
+    if (index > 0) {
+      const prev = LESSONS[index - 1];
+      const prevPct = countCompleted(prev) / prev.items.length;
+      locked = prevPct < UNLOCK_THRESHOLD;
+    }
+    return { locked: locked, done: done, pct: pct };
+  }
+
+  function renderResumeBanner() {
+    const last = state.progress.lastPosition;
+    if (!last) {
+      el.resumeBanner.classList.add("hidden");
+      return;
+    }
+    const lessonIdx = LESSONS.findIndex(function (l) { return l.id === last.lessonId; });
+    if (lessonIdx === -1) {
+      el.resumeBanner.classList.add("hidden");
+      return;
+    }
+    const status = getLessonStatus(lessonIdx);
+    if (status.locked) {
+      el.resumeBanner.classList.add("hidden");
+      return;
+    }
+    const lesson = LESSONS[lessonIdx];
+    const resumeIdx = firstUncompletedIndex(lesson);
+    el.resumeLessonTitle.textContent = lesson.title;
+    el.resumeItemInfo.textContent =
+      "Item " + (resumeIdx + 1) + " of " + lesson.items.length;
+    el.resumeBanner.classList.remove("hidden");
+  }
+
+  function firstUncompletedIndex(lesson) {
+    const lp = state.progress.lessons[lesson.id] || {};
+    for (let i = 0; i < lesson.items.length; i++) {
+      if (!lp[i] || !lp[i].completed) return i;
+    }
+    return 0; // fully done — start from the beginning for review
   }
 
   function updateOverallProgress() {
@@ -117,13 +203,27 @@
   }
 
   // ---------- Lesson detail view ----------
-  function openLesson(lessonId) {
+  function openLesson(lessonId, startIndex) {
     state.lessonId = lessonId;
-    state.itemIndex = 0;
     const lesson = getLesson();
+    if (typeof startIndex === "number") {
+      state.itemIndex = Math.max(0, Math.min(startIndex, lesson.items.length - 1));
+    } else {
+      // Smart resume: jump to the first item you haven't completed yet.
+      state.itemIndex = firstUncompletedIndex(lesson);
+    }
     el.title.textContent = lesson.title;
+    rememberPosition();
     switchView("lesson");
     renderItem();
+  }
+
+  function rememberPosition() {
+    state.progress.lastPosition = {
+      lessonId: state.lessonId,
+      itemIndex: state.itemIndex,
+    };
+    saveProgress();
   }
 
   function getLesson() {
@@ -348,8 +448,8 @@
   }
 
   function markItemCompleted(lessonId, index) {
-    if (!state.progress[lessonId]) state.progress[lessonId] = {};
-    state.progress[lessonId][index] = { completed: true, at: Date.now() };
+    const lp = lessonProgressFor(lessonId);
+    lp[index] = { completed: true, at: Date.now() };
     saveProgress();
   }
 
@@ -357,6 +457,7 @@
   function goPrev() {
     if (state.itemIndex > 0) {
       state.itemIndex--;
+      rememberPosition();
       renderItem();
     }
   }
@@ -364,6 +465,7 @@
     const lesson = getLesson();
     if (state.itemIndex < lesson.items.length - 1) {
       state.itemIndex++;
+      rememberPosition();
       renderItem();
     } else {
       // End of lesson — return to list
@@ -381,10 +483,18 @@
     });
     el.resetBtn.addEventListener("click", function () {
       if (confirm("Reset all progress? This cannot be undone.")) {
-        state.progress = {};
+        state.progress = { lessons: {}, lastPosition: null };
         saveProgress();
         renderLessonList();
       }
+    });
+    el.resumeBtn.addEventListener("click", function () {
+      const last = state.progress.lastPosition;
+      if (!last) return;
+      const lessonIdx = LESSONS.findIndex(function (l) { return l.id === last.lessonId; });
+      if (lessonIdx === -1) return;
+      if (getLessonStatus(lessonIdx).locked) return;
+      openLesson(last.lessonId);
     });
     el.listenBtn.addEventListener("click", function () {
       const item = getLesson().items[state.itemIndex];

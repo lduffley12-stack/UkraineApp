@@ -9,7 +9,11 @@ For every item you can:
 - **Say it back** — press the microphone button and repeat. The app listens in Ukrainian, compares what you said to the expected answer, and grades you. Get it right and that item is marked complete.
 - **Show translation** — hide the English by default so you practice recall, and reveal it when you need a hint.
 
-Progress is saved in your browser (localStorage) so the app remembers where you left off.
+Progress is saved in your browser (localStorage) so the app remembers where you left off:
+
+- Lessons **build on each other** — later lessons are locked until you've completed at least 80% of the previous one.
+- When you reopen a lesson, it automatically **jumps to the first item you haven't passed yet**, so you never have to redo work.
+- The home screen shows a **"Continue where you left off"** banner so you can pick up with one click.
 
 ## Running it
 

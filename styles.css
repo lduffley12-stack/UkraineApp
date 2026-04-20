@@ -171,6 +171,71 @@ h2 {
   height: 6px;
 }
 
+.lesson-card.locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #f3f5f8;
+}
+
+.lesson-card.locked:hover {
+  transform: none;
+  box-shadow: var(--shadow);
+}
+
+.lesson-card.done {
+  border-color: var(--success);
+}
+
+.lesson-card .status {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lesson-card .status.unlocked { color: var(--success); }
+.lesson-card .status.locked-note { color: var(--muted); }
+
+.resume-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  background: linear-gradient(90deg, #f0f6ff, #fff9d9);
+  border: 1px solid #d7e3f3;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.resume-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.resume-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.resume-text strong {
+  font-size: 17px;
+  color: var(--uk-blue);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resume-sub {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .footer-note {
   color: var(--muted);
   font-size: 13px;
