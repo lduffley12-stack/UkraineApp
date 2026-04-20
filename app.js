@@ -3,8 +3,22 @@
 
   const STORAGE_KEY = "ukraine-app-progress-v2";
   const LEGACY_STORAGE_KEY = "ukraine-app-progress-v1";
+  const WELCOME_SEEN_KEY = "ukraine-app-welcome-seen-v1";
   const UNLOCK_THRESHOLD = 0.8; // 80% of previous lesson required to unlock the next
   const REVIEW_ITEM_COUNT = 3;  // Number of spiral-review items prepended to each lesson after the first
+
+  const LESSON_ICONS = {
+    greetings: "👋", essentials: "✨", numbers: "🔢", family: "👨‍👩‍👧",
+    colors: "🎨", food: "🍎", verbs: "🏃",
+    "small-talk": "💬", survival: "🆘", "at-the-cafe": "☕",
+    "about-me": "🪪", "getting-around": "🗺", conversation: "🗣",
+  };
+
+  const LEVEL_META = {
+    words:     { title: "Level 1 · Words",       desc: "Start here. One word at a time." },
+    phrases:   { title: "Level 2 · Short phrases", desc: "Put words together." },
+    sentences: { title: "Level 3 · Sentences",   desc: "Full thoughts. You've got this." },
+  };
 
   // ---------- State ----------
   // Progress shape:
@@ -84,56 +98,99 @@
     recogWarning: document.getElementById("recog-warning"),
     overallBar: document.getElementById("overall-progress"),
     overallText: document.getElementById("overall-progress-text"),
+    helpBtn: document.getElementById("help-btn"),
+    welcomeOverlay: document.getElementById("welcome-overlay"),
+    welcomeStart: document.getElementById("welcome-start"),
+    welcomeClose: document.getElementById("welcome-close"),
   };
 
   // ---------- Lesson list view ----------
   function renderLessonList() {
     el.lessonsContainer.innerHTML = "";
+
+    // Group lessons by level, preserving order.
+    const groups = {};
+    const groupOrder = [];
     LESSONS.forEach(function (lesson, index) {
-      const btn = document.createElement("button");
-      btn.className = "lesson-card";
-      btn.setAttribute("type", "button");
-
-      const levelLabel =
-        lesson.level === "words" ? "Words" :
-        lesson.level === "phrases" ? "Short phrases" : "Sentences";
-      const levelClass = lesson.level === "phrases" ? "phrases" :
-                         lesson.level === "sentences" ? "sentences" : "";
-
-      const completed = countCompleted(lesson);
-      const pct = Math.round((completed / lesson.items.length) * 100);
-      const status = getLessonStatus(index);
-
-      if (status.locked) btn.classList.add("locked");
-      if (status.done) btn.classList.add("done");
-
-      const statusLine = status.locked
-        ? '<span class="status locked-note">🔒 Finish "' + escapeHtml(LESSONS[index - 1].title) + '" to unlock</span>'
-        : status.done
-          ? '<span class="status unlocked">✓ Complete</span>'
-          : completed > 0
-            ? '<span class="status unlocked">In progress</span>'
-            : '<span class="status unlocked">Ready</span>';
-
-      btn.innerHTML = `
-        <span class="level-badge ${levelClass}">${levelLabel}</span>
-        <h3>${escapeHtml(lesson.title)}</h3>
-        <p class="desc">${escapeHtml(lesson.description)}</p>
-        <div class="card-progress">
-          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-          <span>${completed}/${lesson.items.length}</span>
-        </div>
-        ${statusLine}
-      `;
-      btn.disabled = status.locked;
-      btn.addEventListener("click", function () {
-        if (status.locked) return;
-        openLesson(lesson.id);
-      });
-      el.lessonsContainer.appendChild(btn);
+      if (!groups[lesson.level]) {
+        groups[lesson.level] = [];
+        groupOrder.push(lesson.level);
+      }
+      groups[lesson.level].push({ lesson: lesson, index: index });
     });
+
+    groupOrder.forEach(function (level) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "lesson-group";
+
+      const heading = document.createElement("h2");
+      heading.className = "group-title";
+      heading.textContent = (LEVEL_META[level] && LEVEL_META[level].title) || level;
+      wrapper.appendChild(heading);
+
+      const grid = document.createElement("div");
+      grid.className = "lessons-grid";
+
+      groups[level].forEach(function (entry) {
+        grid.appendChild(buildLessonCard(entry.lesson, entry.index));
+      });
+
+      wrapper.appendChild(grid);
+      el.lessonsContainer.appendChild(wrapper);
+    });
+
     updateOverallProgress();
     renderResumeBanner();
+  }
+
+  function buildLessonCard(lesson, index) {
+    const btn = document.createElement("button");
+    btn.className = "lesson-card";
+    btn.setAttribute("type", "button");
+
+    const completed = countCompleted(lesson);
+    const pct = Math.round((completed / lesson.items.length) * 100);
+    const status = getLessonStatus(index);
+
+    if (status.locked) btn.classList.add("locked");
+    if (status.done) btn.classList.add("done");
+
+    const icon = status.locked ? "🔒" : (LESSON_ICONS[lesson.id] || "📘");
+    const ctaText = status.locked ? "Locked"
+                  : status.done ? "✓ Done · review"
+                  : completed > 0 ? "Continue →"
+                  : "Start →";
+
+    const metaBits = [];
+    metaBits.push(lesson.items.length + " " + (lesson.items.length === 1 ? "item" : "items"));
+    if (status.locked && index > 0) {
+      metaBits.push("Finish " + LESSONS[index - 1].title + " to unlock");
+    } else {
+      metaBits.push(lesson.description);
+    }
+
+    btn.innerHTML =
+      '<span class="lesson-icon" aria-hidden="true">' + icon + '</span>' +
+      '<div class="lesson-body">' +
+        '<h3>' + escapeHtml(lesson.title) + '</h3>' +
+        '<div class="lesson-meta">' +
+          metaBits.map(function (b, i) {
+            return (i > 0 ? '<span class="meta-dot">•</span>' : '') + escapeHtml(b);
+          }).join('') +
+        '</div>' +
+        '<div class="lesson-progress-line">' +
+          '<div class="progress-track"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+          '<span class="progress-count">' + completed + '/' + lesson.items.length + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<span class="lesson-cta">' + ctaText + '</span>';
+
+    btn.disabled = status.locked;
+    btn.addEventListener("click", function () {
+      if (status.locked) return;
+      openLesson(lesson.id);
+    });
+    return btn;
   }
 
   function countCompleted(lesson) {
@@ -321,6 +378,8 @@
     el.translit.textContent = item.translit;
     el.en.textContent = item.en;
     el.en.classList.add("hidden");
+    el.showBtn.classList.remove("on");
+    el.showBtn.querySelector("span:last-child").textContent = "Show English translation";
     el.heard.innerHTML = "";
     el.feedback.textContent = "";
     el.feedback.className = "feedback";
@@ -406,7 +465,7 @@
     recognizer.onstart = function () {
       state.recognizing = true;
       el.micBtn.classList.add("recording");
-      el.micLabel.textContent = "Listening... speak now";
+      el.micLabel.textContent = "Listening… speak now";
       el.heard.innerHTML = "";
       el.feedback.textContent = "";
       el.feedback.className = "feedback";
@@ -414,12 +473,12 @@
     recognizer.onend = function () {
       state.recognizing = false;
       el.micBtn.classList.remove("recording");
-      el.micLabel.textContent = "Press and say it";
+      el.micLabel.textContent = "Press & say the word";
     };
     recognizer.onerror = function (e) {
       state.recognizing = false;
       el.micBtn.classList.remove("recording");
-      el.micLabel.textContent = "Press and say it";
+      el.micLabel.textContent = "Press & say the word";
       let msg = "Couldn't hear you. Try again.";
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         msg = "Microphone access was blocked. Enable it in your browser settings.";
@@ -597,7 +656,22 @@
       if (item) speak(item.uk, { slow: true });
     });
     el.showBtn.addEventListener("click", function () {
-      el.en.classList.toggle("hidden");
+      const shown = el.en.classList.toggle("hidden") === false;
+      el.showBtn.classList.toggle("on", shown);
+      el.showBtn.querySelector("span:last-child").textContent =
+        shown ? "Hide English translation" : "Show English translation";
+    });
+
+    el.helpBtn.addEventListener("click", function () { showWelcome(); });
+    el.welcomeStart.addEventListener("click", function () { dismissWelcome(); });
+    el.welcomeClose.addEventListener("click", function () { dismissWelcome(); });
+    el.welcomeOverlay.addEventListener("click", function (e) {
+      if (e.target === el.welcomeOverlay) dismissWelcome();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !el.welcomeOverlay.classList.contains("hidden")) {
+        dismissWelcome();
+      }
     });
     el.micBtn.addEventListener("click", function () {
       if (state.recognizing) {
@@ -625,12 +699,29 @@
     });
   }
 
+  // ---------- Welcome overlay ----------
+  function showWelcome() {
+    el.welcomeOverlay.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  }
+  function dismissWelcome() {
+    el.welcomeOverlay.classList.add("hidden");
+    document.body.style.overflow = "";
+    try { localStorage.setItem(WELCOME_SEEN_KEY, "1"); } catch (_) { /* ignore */ }
+  }
+  function maybeShowWelcomeOnFirstRun() {
+    let seen = false;
+    try { seen = localStorage.getItem(WELCOME_SEEN_KEY) === "1"; } catch (_) {}
+    if (!seen) showWelcome();
+  }
+
   // ---------- Init ----------
   function init() {
     renderLessonList();
     wireEvents();
     setupRecognizer();
     ensureVoiceWarning();
+    maybeShowWelcomeOnFirstRun();
     // Trigger voices load
     if (window.speechSynthesis) window.speechSynthesis.getVoices();
   }
