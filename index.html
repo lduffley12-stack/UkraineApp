@@ -52,6 +52,98 @@
     </div>
   </div>
 
+  <!-- Settings overlay -->
+  <div id="settings-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="overlay-card">
+      <button id="settings-close" class="overlay-close" aria-label="Close">×</button>
+      <div class="welcome-hero">
+        <span class="welcome-emoji" aria-hidden="true">🎙️</span>
+        <h2 id="settings-title">Voice settings</h2>
+        <p class="welcome-sub">Choose how Ukrainian words are read aloud.</p>
+      </div>
+
+      <div class="voice-options">
+        <label class="voice-option">
+          <input type="radio" name="voice-provider" value="system" />
+          <div>
+            <div class="voice-option-title">System voice <span class="voice-pill">free · offline</span></div>
+            <div class="voice-option-desc">Uses the Ukrainian voice installed on your computer. Works without internet but quality varies by OS.</div>
+          </div>
+        </label>
+        <label class="voice-option">
+          <input type="radio" name="voice-provider" value="azure" />
+          <div>
+            <div class="voice-option-title">Azure Speech <span class="voice-pill voice-pill-blue">neural · premium</span></div>
+            <div class="voice-option-desc">Natural neural voices from Microsoft. Free tier: 500,000 characters/month. Needs a free API key.</div>
+          </div>
+        </label>
+      </div>
+
+      <div id="azure-settings" class="azure-settings hidden">
+        <div class="field">
+          <label for="azure-key">Subscription key</label>
+          <input type="password" id="azure-key" placeholder="Paste your 32-character Speech key" autocomplete="off" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="azure-region">Region</label>
+            <select id="azure-region">
+              <option value="eastus">East US</option>
+              <option value="eastus2">East US 2</option>
+              <option value="westus2">West US 2</option>
+              <option value="westus3">West US 3</option>
+              <option value="centralus">Central US</option>
+              <option value="westeurope">West Europe</option>
+              <option value="northeurope">North Europe</option>
+              <option value="uksouth">UK South</option>
+              <option value="francecentral">France Central</option>
+              <option value="germanywestcentral">Germany West Central</option>
+              <option value="eastasia">East Asia</option>
+              <option value="southeastasia">Southeast Asia</option>
+              <option value="japaneast">Japan East</option>
+              <option value="australiaeast">Australia East</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="azure-voice">Voice</label>
+            <select id="azure-voice">
+              <option value="uk-UA-PolinaNeural">Polina (female)</option>
+              <option value="uk-UA-OstapNeural">Ostap (male)</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-actions">
+          <button id="azure-test" class="btn-secondary" type="button">▶ Test voice</button>
+          <span id="azure-status" class="azure-status"></span>
+        </div>
+
+        <details class="setup-guide">
+          <summary>How to get a free Azure Speech key (5 min)</summary>
+          <ol>
+            <li>Go to <a href="https://portal.azure.com" target="_blank" rel="noopener">portal.azure.com</a> and sign in (create a free account if needed — a credit card is required but you won't be charged on the free tier).</li>
+            <li>In the top search bar type <strong>Speech services</strong> and click the result.</li>
+            <li>Click <strong>Create</strong>. Fill in:
+              <ul>
+                <li><strong>Subscription:</strong> your free one</li>
+                <li><strong>Resource group:</strong> create a new one, any name</li>
+                <li><strong>Region:</strong> pick one close to you (e.g. <em>East US</em>) — remember this, you'll enter it here</li>
+                <li><strong>Name:</strong> anything (e.g. <em>my-ukrainian-app</em>)</li>
+                <li><strong>Pricing tier:</strong> <strong>Free F0</strong> (500k characters/month)</li>
+              </ul>
+            </li>
+            <li>Click <strong>Review + create</strong>, then <strong>Create</strong>. Wait ~30 seconds for deployment.</li>
+            <li>Click <strong>Go to resource</strong> → in the left sidebar, click <strong>Keys and Endpoint</strong>.</li>
+            <li>Copy <strong>KEY 1</strong> and paste it above. Pick the same <strong>Region</strong> you chose in step 3.</li>
+            <li>Click <strong>Test voice</strong>. You should hear "Привіт".</li>
+          </ol>
+          <p class="setup-note">Your key is stored only in your browser's localStorage. It never leaves this machine.</p>
+        </details>
+      </div>
+
+      <button id="settings-save" class="btn-primary btn-big">Save settings</button>
+    </div>
+  </div>
+
   <!-- App header -->
   <header class="app-header">
     <div class="brand">
@@ -66,6 +158,7 @@
         <div class="progress-track"><div id="overall-progress" class="progress-fill"></div></div>
         <span id="overall-progress-text">0%</span>
       </div>
+      <button id="settings-btn" class="icon-btn" aria-label="Voice settings" title="Voice settings">⚙</button>
       <button id="help-btn" class="icon-btn" aria-label="How it works" title="How it works">?</button>
     </div>
   </header>
@@ -139,6 +232,7 @@
             <span>Slower</span>
           </button>
         </div>
+        <div id="voice-status" class="voice-status"></div>
 
         <div class="divider"><span>now you try</span></div>
 

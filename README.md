@@ -38,6 +38,17 @@ Then visit <http://localhost:8000>.
 - **← / →** — previous / next item
 - **M** — start/stop the microphone
 
+## Premium voice (optional): Azure Speech
+
+Click the **⚙** gear icon in the top-right to open **Voice settings**. Out of the box the app uses whatever Ukrainian voice your operating system has installed. If you want a dramatically better, more natural neural voice, you can plug in a free Microsoft Azure Speech key:
+
+1. Sign in at <https://portal.azure.com> (create a free account if needed — requires a credit card, but the free tier won't charge you).
+2. Search **Speech services** → **Create** → pick region **East US** (or any nearby) → pricing tier **Free F0** (500,000 characters/month free).
+3. Open the resource → **Keys and Endpoint** → copy **KEY 1** and the **Location/Region**.
+4. In the app's Voice settings, choose **Azure Speech**, paste the key, pick the same region, choose **Polina** (female) or **Ostap** (male), click **Test voice**, then **Save**.
+
+Your key is stored only in your browser's localStorage and is used to request a short-lived token from Azure each session — it never leaves your machine otherwise.
+
 ## Tips for pronunciation matching
 
 - Speak clearly and not too fast.

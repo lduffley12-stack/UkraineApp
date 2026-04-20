@@ -4,6 +4,7 @@
   const STORAGE_KEY = "ukraine-app-progress-v2";
   const LEGACY_STORAGE_KEY = "ukraine-app-progress-v1";
   const WELCOME_SEEN_KEY = "ukraine-app-welcome-seen-v1";
+  const VOICE_SETTINGS_KEY = "ukraine-voice-settings-v1";
   const UNLOCK_THRESHOLD = 0.8; // 80% of previous lesson required to unlock the next
   const REVIEW_ITEM_COUNT = 3;  // Number of spiral-review items prepended to each lesson after the first
 
@@ -36,7 +37,27 @@
     progress: loadProgress(),
     availableVoice: null,
     recognizing: false,
+    voiceSettings: loadVoiceSettings(),
   };
+
+  function loadVoiceSettings() {
+    const defaults = {
+      provider: "system",
+      azure: { key: "", region: "eastus", voice: "uk-UA-PolinaNeural" },
+    };
+    try {
+      const raw = localStorage.getItem(VOICE_SETTINGS_KEY);
+      if (!raw) return defaults;
+      const parsed = JSON.parse(raw);
+      return Object.assign({}, defaults, parsed, {
+        azure: Object.assign({}, defaults.azure, parsed.azure || {}),
+      });
+    } catch (_) { return defaults; }
+  }
+
+  function saveVoiceSettings() {
+    try { localStorage.setItem(VOICE_SETTINGS_KEY, JSON.stringify(state.voiceSettings)); } catch (_) {}
+  }
 
   function loadProgress() {
     try {
@@ -102,6 +123,17 @@
     welcomeOverlay: document.getElementById("welcome-overlay"),
     welcomeStart: document.getElementById("welcome-start"),
     welcomeClose: document.getElementById("welcome-close"),
+    settingsBtn: document.getElementById("settings-btn"),
+    settingsOverlay: document.getElementById("settings-overlay"),
+    settingsClose: document.getElementById("settings-close"),
+    settingsSave: document.getElementById("settings-save"),
+    azureSettings: document.getElementById("azure-settings"),
+    azureKey: document.getElementById("azure-key"),
+    azureRegion: document.getElementById("azure-region"),
+    azureVoice: document.getElementById("azure-voice"),
+    azureTest: document.getElementById("azure-test"),
+    azureStatus: document.getElementById("azure-status"),
+    voiceStatus: document.getElementById("voice-status"),
   };
 
   // ---------- Lesson list view ----------
@@ -402,21 +434,38 @@
 
     el.prev.disabled = state.itemIndex === 0;
     el.next.disabled = false;
+    setVoiceStatus();
   }
 
-  // ---------- Text-to-speech ----------
+  // ---------- Text-to-speech (provider-aware) ----------
+  // Entry point: route to Azure if configured, otherwise system TTS.
+  function speak(text, opts) {
+    const vs = state.voiceSettings;
+    if (vs.provider === "azure" && vs.azure.key) {
+      azureSpeak(text, opts).catch(function (err) {
+        console.warn("Azure TTS failed, falling back to system voice:", err);
+        setVoiceStatus("error", "Azure voice unavailable — using system voice");
+        systemSpeak(text, opts);
+      });
+    } else {
+      systemSpeak(text, opts);
+    }
+  }
+
+  // ----- System (browser) TTS -----
   function pickUkrainianVoice() {
     const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
     if (!voices || voices.length === 0) return null;
-    let voice =
+    return (
       voices.find(function (v) { return /^uk(-|_)/i.test(v.lang); }) ||
       voices.find(function (v) { return /ukrain/i.test(v.name); }) ||
-      null;
-    return voice;
+      null
+    );
   }
 
-  function speak(text, opts) {
+  function systemSpeak(text, opts) {
     if (!window.speechSynthesis) return;
+    stopAzureAudio();
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "uk-UA";
@@ -427,23 +476,135 @@
     window.speechSynthesis.speak(u);
   }
 
+  // ----- Azure Speech TTS via REST -----
+  const azureTokenCache = { token: null, region: null, expires: 0 };
+  let azureCurrentAudio = null;
+
+  function stopAzureAudio() {
+    if (azureCurrentAudio) {
+      try { azureCurrentAudio.pause(); } catch (_) {}
+      azureCurrentAudio = null;
+    }
+  }
+
+  async function getAzureToken() {
+    const region = state.voiceSettings.azure.region;
+    const key = state.voiceSettings.azure.key;
+    const now = Date.now();
+    if (azureTokenCache.token && azureTokenCache.region === region && azureTokenCache.expires > now) {
+      return azureTokenCache.token;
+    }
+    const resp = await fetch(
+      "https://" + region + ".api.cognitive.microsoft.com/sts/v1.0/issueToken",
+      { method: "POST", headers: { "Ocp-Apim-Subscription-Key": key } }
+    );
+    if (!resp.ok) {
+      throw new Error("Azure auth failed (" + resp.status + "). Check your key and region.");
+    }
+    const token = await resp.text();
+    azureTokenCache.token = token;
+    azureTokenCache.region = region;
+    azureTokenCache.expires = now + 9 * 60 * 1000; // tokens live ~10 min
+    return token;
+  }
+
+  function escapeXml(s) {
+    return String(s).replace(/[<>&'"]/g, function (c) {
+      return ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", "\"": "&quot;" })[c];
+    });
+  }
+
+  async function azureSpeak(text, opts) {
+    // Cancel any in-flight audio
+    stopAzureAudio();
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+    const { region, voice } = state.voiceSettings.azure;
+    const token = await getAzureToken();
+    const rate = (opts && opts.slow) ? "-30%" : "0%";
+    const ssml =
+      "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='uk-UA'>" +
+        "<voice name='" + voice + "'>" +
+          "<prosody rate='" + rate + "'>" + escapeXml(text) + "</prosody>" +
+        "</voice>" +
+      "</speak>";
+
+    const resp = await fetch(
+      "https://" + region + ".tts.speech.microsoft.com/cognitiveservices/v1",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/ssml+xml",
+          "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
+        },
+        body: ssml,
+      }
+    );
+    if (!resp.ok) {
+      const body = await resp.text().catch(function () { return ""; });
+      throw new Error("Azure TTS failed (" + resp.status + "): " + body.slice(0, 200));
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    azureCurrentAudio = audio;
+    const cleanup = function () {
+      URL.revokeObjectURL(url);
+      if (azureCurrentAudio === audio) azureCurrentAudio = null;
+    };
+    audio.addEventListener("ended", cleanup);
+    audio.addEventListener("error", cleanup);
+    await audio.play();
+    setVoiceStatus("azure", null);
+  }
+
   function ensureVoiceWarning() {
+    // Hide the system-voice warning if Azure is configured (they don't need a local voice).
+    const vs = state.voiceSettings;
+    if (vs.provider === "azure" && vs.azure.key) {
+      el.voiceWarning.classList.add("hidden");
+      return;
+    }
     if (!window.speechSynthesis) {
       el.voiceWarning.classList.remove("hidden");
-      el.voiceWarning.innerHTML = "<strong>Heads up:</strong> Your browser doesn't support text-to-speech. You can still read and practice by ear with the transliteration.";
+      el.voiceWarning.innerHTML = "<strong>⚠ No text-to-speech available.</strong> <span>Your browser doesn't support speech output. You can still read and practice pronunciation by ear using the transliteration.</span>";
       return;
     }
     const voice = pickUkrainianVoice();
-    if (!voice) {
-      el.voiceWarning.classList.remove("hidden");
+    el.voiceWarning.classList.toggle("hidden", !!voice);
+  }
+
+  // Voice-status indicator under the Hear-it buttons
+  function setVoiceStatus(kind, overrideText) {
+    if (!el.voiceStatus) return;
+    const vs = state.voiceSettings;
+    let dotClass = "";
+    let label = "";
+    if (overrideText) {
+      dotClass = kind === "error" ? "error" : (kind === "azure" ? "azure" : "");
+      label = overrideText;
+    } else if (vs.provider === "azure" && vs.azure.key) {
+      dotClass = "azure";
+      const name = vs.azure.voice === "uk-UA-OstapNeural" ? "Ostap" : "Polina";
+      label = "Using " + name + " (Azure Speech)";
     } else {
-      el.voiceWarning.classList.add("hidden");
+      const v = pickUkrainianVoice();
+      label = v ? "Using " + v.name + " (system)" : "Using default voice (no Ukrainian installed)";
     }
+    el.voiceStatus.innerHTML =
+      '<span class="voice-provider">' +
+        '<span class="voice-provider-dot ' + dotClass + '"></span>' +
+        escapeHtml(label) +
+      '</span>';
   }
 
   // Voices in Chrome often load asynchronously
   if (window.speechSynthesis) {
-    window.speechSynthesis.onvoiceschanged = ensureVoiceWarning;
+    window.speechSynthesis.onvoiceschanged = function () {
+      ensureVoiceWarning();
+      setVoiceStatus();
+    };
   }
 
   // ---------- Speech recognition ----------
@@ -668,9 +829,27 @@
     el.welcomeOverlay.addEventListener("click", function (e) {
       if (e.target === el.welcomeOverlay) dismissWelcome();
     });
+
+    // Settings overlay
+    el.settingsBtn.addEventListener("click", function () { showSettings(); });
+    el.settingsClose.addEventListener("click", function () { dismissSettings(); });
+    el.settingsOverlay.addEventListener("click", function (e) {
+      if (e.target === el.settingsOverlay) dismissSettings();
+    });
+    el.settingsSave.addEventListener("click", function () { saveSettingsFromForm(); });
+
+    document.querySelectorAll('input[name="voice-provider"]').forEach(function (radio) {
+      radio.addEventListener("change", function () {
+        el.azureSettings.classList.toggle("hidden", radio.value !== "azure" || !radio.checked);
+      });
+    });
+
+    el.azureTest.addEventListener("click", function () { testAzureVoice(); });
+
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && !el.welcomeOverlay.classList.contains("hidden")) {
-        dismissWelcome();
+      if (e.key === "Escape") {
+        if (!el.welcomeOverlay.classList.contains("hidden")) dismissWelcome();
+        else if (!el.settingsOverlay.classList.contains("hidden")) dismissSettings();
       }
     });
     el.micBtn.addEventListener("click", function () {
@@ -713,6 +892,70 @@
     let seen = false;
     try { seen = localStorage.getItem(WELCOME_SEEN_KEY) === "1"; } catch (_) {}
     if (!seen) showWelcome();
+  }
+
+  // ---------- Settings overlay ----------
+  function showSettings() {
+    const vs = state.voiceSettings;
+    // Populate form from saved settings
+    const radios = document.querySelectorAll('input[name="voice-provider"]');
+    radios.forEach(function (r) { r.checked = r.value === vs.provider; });
+    el.azureSettings.classList.toggle("hidden", vs.provider !== "azure");
+    el.azureKey.value = vs.azure.key || "";
+    el.azureRegion.value = vs.azure.region || "eastus";
+    el.azureVoice.value = vs.azure.voice || "uk-UA-PolinaNeural";
+    el.azureStatus.textContent = "";
+    el.azureStatus.className = "azure-status";
+
+    el.settingsOverlay.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  }
+  function dismissSettings() {
+    el.settingsOverlay.classList.add("hidden");
+    document.body.style.overflow = "";
+  }
+  function saveSettingsFromForm() {
+    const provider = document.querySelector('input[name="voice-provider"]:checked');
+    state.voiceSettings.provider = provider ? provider.value : "system";
+    state.voiceSettings.azure.key = el.azureKey.value.trim();
+    state.voiceSettings.azure.region = el.azureRegion.value;
+    state.voiceSettings.azure.voice = el.azureVoice.value;
+    // Invalidate cached token since key/region may have changed
+    azureTokenCache.token = null;
+    saveVoiceSettings();
+    ensureVoiceWarning();
+    setVoiceStatus();
+    dismissSettings();
+  }
+  async function testAzureVoice() {
+    const key = el.azureKey.value.trim();
+    const region = el.azureRegion.value;
+    const voice = el.azureVoice.value;
+    if (!key) {
+      el.azureStatus.textContent = "Enter a subscription key first.";
+      el.azureStatus.className = "azure-status bad";
+      return;
+    }
+    // Temporarily apply form values for the test call
+    const saved = state.voiceSettings.azure;
+    state.voiceSettings.azure = { key: key, region: region, voice: voice };
+    azureTokenCache.token = null;
+    el.azureStatus.textContent = "Testing…";
+    el.azureStatus.className = "azure-status";
+    el.azureTest.disabled = true;
+    try {
+      await azureSpeak("Привіт! Давай вивчати українську.", { slow: false });
+      el.azureStatus.textContent = "✓ Voice is working.";
+      el.azureStatus.className = "azure-status good";
+    } catch (err) {
+      el.azureStatus.textContent = "✗ " + (err.message || "Test failed.");
+      el.azureStatus.className = "azure-status bad";
+      // Restore previous settings on failure so a bad test doesn't silently take over.
+      state.voiceSettings.azure = saved;
+      azureTokenCache.token = null;
+    } finally {
+      el.azureTest.disabled = false;
+    }
   }
 
   // ---------- Init ----------
