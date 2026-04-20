@@ -4,6 +4,7 @@
   const STORAGE_KEY = "ukraine-app-progress-v2";
   const LEGACY_STORAGE_KEY = "ukraine-app-progress-v1";
   const UNLOCK_THRESHOLD = 0.8; // 80% of previous lesson required to unlock the next
+  const REVIEW_ITEM_COUNT = 3;  // Number of spiral-review items prepended to each lesson after the first
 
   // ---------- State ----------
   // Progress shape:
@@ -14,6 +15,10 @@
   const state = {
     lessonId: null,
     itemIndex: 0,
+    // Items actually shown during this lesson session: may start with a few review picks
+    // followed by the current lesson's items. Each entry: { uk, translit, en, accept?, review, sourceLessonId, sourceIndex, sourceTitle }
+    runtimeItems: [],
+    reviewCount: 0,
     progress: loadProgress(),
     availableVoice: null,
     recognizing: false,
@@ -63,6 +68,8 @@
     uk: document.getElementById("uk-text"),
     translit: document.getElementById("translit-text"),
     en: document.getElementById("en-text"),
+    reviewBadge: document.getElementById("review-badge"),
+    reviewSource: document.getElementById("review-source"),
     listenBtn: document.getElementById("listen-btn"),
     slowBtn: document.getElementById("slow-btn"),
     showBtn: document.getElementById("show-btn"),
@@ -203,19 +210,90 @@
   }
 
   // ---------- Lesson detail view ----------
-  function openLesson(lessonId, startIndex) {
+  function openLesson(lessonId) {
     state.lessonId = lessonId;
     const lesson = getLesson();
-    if (typeof startIndex === "number") {
-      state.itemIndex = Math.max(0, Math.min(startIndex, lesson.items.length - 1));
+    const lessonIndex = LESSONS.findIndex(function (l) { return l.id === lessonId; });
+
+    // Build runtime items: 2–3 spiral-review items from earlier lessons + the actual lesson items.
+    const reviews = pickReviewItems(lessonIndex, REVIEW_ITEM_COUNT);
+    state.reviewCount = reviews.length;
+    const actual = lesson.items.map(function (item, idx) {
+      return {
+        uk: item.uk,
+        translit: item.translit,
+        en: item.en,
+        accept: item.accept,
+        review: false,
+        sourceLessonId: lesson.id,
+        sourceIndex: idx,
+        sourceTitle: lesson.title,
+      };
+    });
+    state.runtimeItems = reviews.concat(actual);
+
+    // Smart resume: if the user hasn't completed any items in this lesson yet, start at the top
+    // (so they see the review warm-up). Otherwise skip past review and jump to the first
+    // uncompleted real item.
+    const alreadyDone = countCompleted(lesson);
+    if (alreadyDone === 0) {
+      state.itemIndex = 0;
     } else {
-      // Smart resume: jump to the first item you haven't completed yet.
-      state.itemIndex = firstUncompletedIndex(lesson);
+      state.itemIndex = state.reviewCount + firstUncompletedIndex(lesson);
+      if (state.itemIndex > state.runtimeItems.length - 1) state.itemIndex = state.runtimeItems.length - 1;
     }
+
     el.title.textContent = lesson.title;
     rememberPosition();
     switchView("lesson");
     renderItem();
+  }
+
+  function pickReviewItems(currentLessonIndex, count) {
+    if (currentLessonIndex <= 0 || count <= 0) return [];
+    const pool = [];
+    // Prefer items the user has completed in earlier lessons (true reinforcement).
+    for (let i = 0; i < currentLessonIndex; i++) {
+      const prev = LESSONS[i];
+      const lp = state.progress.lessons[prev.id] || {};
+      for (let j = 0; j < prev.items.length; j++) {
+        if (lp[j] && lp[j].completed) {
+          pool.push(buildReviewEntry(prev, j));
+        }
+      }
+    }
+    // Fallback: if nothing completed yet, draw from any earlier-lesson items.
+    if (pool.length === 0) {
+      for (let i = 0; i < currentLessonIndex; i++) {
+        const prev = LESSONS[i];
+        for (let j = 0; j < prev.items.length; j++) {
+          pool.push(buildReviewEntry(prev, j));
+        }
+      }
+    }
+    shuffle(pool);
+    return pool.slice(0, Math.min(count, pool.length));
+  }
+
+  function buildReviewEntry(sourceLesson, index) {
+    const item = sourceLesson.items[index];
+    return {
+      uk: item.uk,
+      translit: item.translit,
+      en: item.en,
+      accept: item.accept,
+      review: true,
+      sourceLessonId: sourceLesson.id,
+      sourceIndex: index,
+      sourceTitle: sourceLesson.title,
+    };
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
   }
 
   function rememberPosition() {
@@ -238,7 +316,7 @@
 
   function renderItem() {
     const lesson = getLesson();
-    const item = lesson.items[state.itemIndex];
+    const item = state.runtimeItems[state.itemIndex];
     el.uk.textContent = item.uk;
     el.translit.textContent = item.translit;
     el.en.textContent = item.en;
@@ -246,7 +324,18 @@
     el.heard.innerHTML = "";
     el.feedback.textContent = "";
     el.feedback.className = "feedback";
-    el.counter.textContent = (state.itemIndex + 1) + " / " + lesson.items.length;
+
+    if (item.review) {
+      el.reviewBadge.classList.remove("hidden");
+      el.reviewSource.textContent = "Warm-up from \u201C" + item.sourceTitle + "\u201D";
+      const pos = state.itemIndex + 1;
+      el.counter.textContent = "Review " + pos + " of " + state.reviewCount;
+    } else {
+      el.reviewBadge.classList.add("hidden");
+      el.reviewSource.textContent = "";
+      const realIndex = state.itemIndex - state.reviewCount + 1;
+      el.counter.textContent = "Item " + realIndex + " of " + lesson.items.length;
+    }
 
     const completed = countCompleted(lesson);
     const pct = Math.round((completed / lesson.items.length) * 100);
@@ -421,7 +510,7 @@
 
   function handleSpokenResult(candidates) {
     const lesson = getLesson();
-    const item = lesson.items[state.itemIndex];
+    const item = state.runtimeItems[state.itemIndex];
     const targets = [item.uk].concat(item.accept || []);
 
     const result = bestMatch(candidates, targets);
@@ -432,9 +521,13 @@
       escapeHtml(result.heard) + '</span> <span class="label">(' + scorePct + '% match)</span>';
 
     if (result.score >= 0.85) {
-      el.feedback.textContent = "Excellent! That sounds right. ✓";
+      el.feedback.textContent = item.review
+        ? "Nice — you still remember it. ✓"
+        : "Excellent! That sounds right. ✓";
       el.feedback.className = "feedback good";
-      markItemCompleted(lesson.id, state.itemIndex);
+      // Mark progress against the SOURCE lesson (for review items, this reinforces earlier lessons;
+      // for real items, this completes the current lesson).
+      markItemCompleted(item.sourceLessonId, item.sourceIndex);
       updateOverallProgress();
       const pct = Math.round((countCompleted(lesson) / lesson.items.length) * 100);
       el.lessonProgress.style.width = pct + "%";
@@ -462,13 +555,12 @@
     }
   }
   function goNext() {
-    const lesson = getLesson();
-    if (state.itemIndex < lesson.items.length - 1) {
+    if (state.itemIndex < state.runtimeItems.length - 1) {
       state.itemIndex++;
       rememberPosition();
       renderItem();
     } else {
-      // End of lesson — return to list
+      // End of lesson (including any review warm-ups) — return to list
       switchView("list");
       renderLessonList();
     }
@@ -497,12 +589,12 @@
       openLesson(last.lessonId);
     });
     el.listenBtn.addEventListener("click", function () {
-      const item = getLesson().items[state.itemIndex];
-      speak(item.uk);
+      const item = state.runtimeItems[state.itemIndex];
+      if (item) speak(item.uk);
     });
     el.slowBtn.addEventListener("click", function () {
-      const item = getLesson().items[state.itemIndex];
-      speak(item.uk, { slow: true });
+      const item = state.runtimeItems[state.itemIndex];
+      if (item) speak(item.uk, { slow: true });
     });
     el.showBtn.addEventListener("click", function () {
       el.en.classList.toggle("hidden");
@@ -525,8 +617,8 @@
       else if (e.key === "ArrowLeft") goPrev();
       else if (e.key === " ") {
         e.preventDefault();
-        const item = getLesson().items[state.itemIndex];
-        speak(item.uk);
+        const item = state.runtimeItems[state.itemIndex];
+        if (item) speak(item.uk);
       } else if (e.key === "m" || e.key === "M") {
         if (state.recognizing) stopListening(); else startListening();
       }

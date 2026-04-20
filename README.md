@@ -12,6 +12,7 @@ For every item you can:
 Progress is saved in your browser (localStorage) so the app remembers where you left off:
 
 - Lessons **build on each other** — later lessons are locked until you've completed at least 80% of the previous one.
+- Every lesson after the first starts with a **spiral-review warm-up**: a few randomly-picked words from earlier lessons you've already learned. Passing them reinforces the earlier lesson (it won't fall off your progress).
 - When you reopen a lesson, it automatically **jumps to the first item you haven't passed yet**, so you never have to redo work.
 - The home screen shows a **"Continue where you left off"** banner so you can pick up with one click.
 
