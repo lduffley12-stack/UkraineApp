@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Вивчай Українську — Learn Ukrainian</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="flag" aria-hidden="true"></span>
+      <h1>Вивчай Українську</h1>
+    </div>
+    <div class="progress-wrap" aria-label="Overall progress">
+      <div class="progress-bar"><div id="overall-progress" class="progress-fill"></div></div>
+      <span id="overall-progress-text">0%</span>
+    </div>
+  </header>
+
+  <main id="app">
+    <!-- Lesson selection view -->
+    <section id="lesson-list" class="view active">
+      <h2>Choose a lesson</h2>
+      <p class="hint">Start at the top. Lessons get harder as you go — first single words, then short phrases, then full sentences.</p>
+      <div id="lessons-container" class="lessons-grid"></div>
+      <div class="footer-note">
+        <p>Tip: Use Chrome, Edge, or Safari for the best speech-recognition support. Make sure your browser has microphone access.</p>
+        <button id="reset-progress" class="text-btn">Reset progress</button>
+      </div>
+    </section>
+
+    <!-- Lesson practice view -->
+    <section id="lesson-view" class="view">
+      <button id="back-btn" class="text-btn">← Back to lessons</button>
+      <div class="lesson-meta">
+        <h2 id="lesson-title"></h2>
+        <span id="lesson-counter" class="counter"></span>
+      </div>
+      <div class="lesson-progress">
+        <div id="lesson-progress-fill" class="progress-fill"></div>
+      </div>
+
+      <article class="card">
+        <div class="card-stage" id="card-stage">
+          <div class="ukrainian" id="uk-text">—</div>
+          <div class="translit" id="translit-text"></div>
+          <div class="english hidden" id="en-text"></div>
+        </div>
+
+        <div class="controls">
+          <button id="listen-btn" class="btn primary" aria-label="Hear in Ukrainian">
+            <span class="icon">🔊</span><span>Hear it</span>
+          </button>
+          <button id="slow-btn" class="btn" aria-label="Hear slowly">
+            <span class="icon">🐢</span><span>Slow</span>
+          </button>
+          <button id="show-btn" class="btn" aria-label="Show translation">
+            <span class="icon">👁</span><span>Show translation</span>
+          </button>
+        </div>
+
+        <div class="speak-section">
+          <button id="mic-btn" class="btn mic" aria-label="Press and speak">
+            <span class="icon">🎤</span><span id="mic-label">Press and say it</span>
+          </button>
+          <div id="heard" class="heard"></div>
+          <div id="feedback" class="feedback"></div>
+        </div>
+
+        <div class="nav-controls">
+          <button id="prev-btn" class="btn">← Previous</button>
+          <button id="skip-btn" class="btn">Skip</button>
+          <button id="next-btn" class="btn primary">Next →</button>
+        </div>
+      </article>
+
+      <div id="voice-warning" class="warning hidden">
+        <strong>Heads up:</strong> No Ukrainian voice was found in your browser. The app will use a default voice, which may not pronounce words correctly. Install a Ukrainian language pack in your OS for better results.
+      </div>
+      <div id="recog-warning" class="warning hidden">
+        <strong>Heads up:</strong> Your browser doesn't support speech recognition. You can still hear and read the words, but pronunciation checking is disabled. Try Chrome or Edge.
+      </div>
+    </section>
+  </main>
+
+  <script src="lessons.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
